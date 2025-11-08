@@ -82,7 +82,8 @@ class IntegralApp:
 
         # Resultado
         self.result_var = tk.StringVar()
-        ttk.Label(main_frame, textvariable=self.result_var, wraplength=500).grid(row=5, column=0, columnspan=2, pady=10)
+        resultado_label = ttk.Label(main_frame, textvariable=self.result_var, wraplength=500, justify=tk.LEFT, font=("Courier", 10))
+        resultado_label.grid(row=5, column=0, columnspan=2, pady=10, sticky='w')
 
         # Actualizar etiquetas iniciales
         self.update_coordinate_labels()
@@ -106,39 +107,186 @@ class IntegralApp:
     def calculate_integral(self):
         """Calcular la integral según el sistema de coordenadas seleccionado"""
         try:
-            # Parsear la función
-            x, y, z = sp.symbols('x y z')
-            f = sp.sympify(self.function_var.get())
+            # Importaciones necesarias
+            import sympy as sp
+            import re
+            import traceback
+            import sys
+            
+            # Configurar codificación
+            sys.stdout.reconfigure(encoding='utf-8')
+            
+            # Definir símbolos matemáticos
+            pi = sp.pi
+            
+            # Crear símbolos de manera más explícita
+            x, y, z, r, theta, rho = sp.symbols('x y z r theta rho', real=True, positive=True)
+            
+            # Función de depuración
+            def debug_print(message):
+                try:
+                    print(message)
+                except Exception:
+                    print(message.encode('ascii', 'ignore').decode('ascii'))
+            
+            # Parsear la función con símbolos matemáticos
+            def parse_function(func_str):
+                # Preprocesamiento de la función
+                debug_print(f"DEBUG: Parseando función original: {func_str}")
+                
+                # Reemplazar potencias con ^
+                func_str = func_str.replace('^', '**')
+                
+                # Preservar funciones trigonométricas
+                func_str = re.sub(r'\b(sin|cos|tan)\(', r'\1(', func_str)
+                
+                # Agregar multiplicación implícita
+                func_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', func_str)
+                func_str = re.sub(r'([a-zA-Z])(\d)', r'\1*\2', func_str)
+                
+                debug_print(f"DEBUG: Función después de preprocesamiento: {func_str}")
+                
+                # Diccionario de locales para evaluación segura
+                locals_dict = {
+                    'x': x, 'y': y, 'z': z, 
+                    'r': r, 'theta': theta, 'rho': rho,
+                    'pi': pi, 
+                    'sin': sp.sin, 
+                    'cos': sp.cos, 
+                    'tan': sp.tan
+                }
+                
+                try:
+                    # Convertir a expresión sympy
+                    f = sp.sympify(func_str, locals=locals_dict)
+                    debug_print(f"DEBUG: Función parseada: {f}")
+                    return f
+                except Exception as e:
+                    debug_print(f"Error al parsear función: {e}")
+                    raise
+            
+            # Parsear límites
+            def parse_limit(limit_str, symbol=None):
+                # Preprocesamiento de límites
+                debug_print(f"DEBUG: Parseando límite original: {limit_str}")
+                
+                # Reemplazar pi por su valor simbólico
+                limit_str = limit_str.replace('π', 'pi')
+                
+                # Reemplazar potencias con ^
+                limit_str = limit_str.replace('^', '**')
+                
+                debug_print(f"DEBUG: Límite después de reemplazos: {limit_str}")
+                
+                # Diccionario de locales para evaluación segura
+                locals_dict = {'pi': pi}
+                
+                try:
+                    # Convertir a valor numérico o simbólico
+                    limit = sp.sympify(limit_str, locals=locals_dict)
+                    debug_print(f"DEBUG: Límite parseado: {limit}")
+                    return limit
+                except Exception as e:
+                    debug_print(f"Error al parsear límite: {e}")
+                    raise
+            
+            # Obtener valores de la interfaz
+            coordinate_system = self.coordinate_system.get().lower()
+            func_str = self.function_var.get()
+            
+            # Validar sistema de coordenadas
+            valid_systems = ['rectangular', 'cilindrico', 'cilíndrico', 'esférico', 'esf', 'esferico']
+            if coordinate_system not in valid_systems:
+                raise ValueError(f"Sistema de coordenadas no válido: {coordinate_system}")
+            
+            # Normalizar sistema de coordenadas
+            if coordinate_system in ['cilindrico', 'cilíndrico']:
+                coordinate_system = 'cilindrico'
+            elif coordinate_system in ['esférico', 'esf', 'esferico']:
+                coordinate_system = 'esférico'
+            
+            # Parsear función
+            f = parse_function(func_str)
+            
+            # Parsear límites según el sistema de coordenadas
+            if coordinate_system == 'rectangular':
+                # Parsear límites para coordenadas rectangulares
+                x_min = parse_limit(self.x_min.get())
+                x_max = parse_limit(self.x_max.get())
+                y_min = parse_limit(self.y_min.get())
+                y_max = parse_limit(self.y_max.get())
+                z_min = parse_limit(self.z_min.get())
+                z_max = parse_limit(self.z_max.get())
+                
+                # Calcular integral rectangular
+                resultado = IntegralCalculator.integral_rectangular(
+                    f, [x_min, x_max], [y_min, y_max], [z_min, z_max]
+                )
+            
+            elif coordinate_system == 'cilindrico':
+                # Parsear límites para coordenadas cilíndricas
+                r_min = parse_limit(self.x_min.get())
+                r_max = parse_limit(self.x_max.get())
+                theta_min = parse_limit(self.y_min.get())
+                theta_max = parse_limit(self.y_max.get())
+                z_min = parse_limit(self.z_min.get())
+                z_max = parse_limit(self.z_max.get())
+                
+                # Calcular integral cilíndrica
+                resultado = IntegralCalculator.integral_cylindrical(
+                    f, [r_min, r_max], [theta_min, theta_max], [z_min, z_max]
+                )
+            
+            elif coordinate_system == 'esférico':
+                # Parsear límites para coordenadas esféricas
+                rho_min = parse_limit(self.x_min.get())
+                rho_max = parse_limit(self.x_max.get())
+                theta_min = parse_limit(self.y_min.get())
+                theta_max = parse_limit(self.y_max.get())
+                phi_min = parse_limit(self.z_min.get())
+                phi_max = parse_limit(self.z_max.get())
+                
+                # Calcular integral esférica
+                resultado = IntegralCalculator.integral_spherical(
+                    f, [rho_min, rho_max], [theta_min, theta_max], [phi_min, phi_max]
+                )
+            
+            else:
+                raise ValueError("Sistema de coordenadas no válido")
+            
+            # Mostrar resultados
+            resultado_manual = resultado['resultado_manual']
+            resultado_simbolico = resultado['resultado_simbolico']
+            resultado_simbolico_evaluado = resultado['resultado_simbolico_evaluado']
+            pasos = resultado['pasos']
+            
+            # Limpiar pantalla de resultados
+            self.result_var.set("") # Clear the StringVar
+            self.result_var.set(f"""Procedimiento paso a paso:
+{pasos}
 
-            # Obtener límites
-            sistema = self.coordinate_system.get()
-            
-            if sistema == "rectangular":
-                x_limits = [float(self.x_min.get()), float(self.x_max.get())]
-                y_limits = [float(self.y_min.get()), float(self.y_max.get())]
-                z_limits = [float(self.z_min.get()), float(self.z_max.get())]
-                
-                resultado = IntegralCalculator.integral_rectangular(f, x_limits, y_limits, z_limits)
-            
-            elif sistema == "cilíndrico":
-                r_limits = [float(self.x_min.get()), float(self.x_max.get())]
-                theta_limits = [float(self.y_min.get()), float(self.y_max.get())]
-                z_limits = [float(self.z_min.get()), float(self.z_max.get())]
-                
-                resultado = IntegralCalculator.integral_cylindrical(f, r_limits, theta_limits, z_limits)
-            
-            else:  # esférico
-                rho_limits = [float(self.x_min.get()), float(self.x_max.get())]
-                theta_limits = [float(self.y_min.get()), float(self.y_max.get())]
-                phi_limits = [float(self.z_min.get()), float(self.z_max.get())]
-                
-                resultado = IntegralCalculator.integral_spherical(f, rho_limits, theta_limits, phi_limits)
-            
-            # Mostrar resultado
-            self.result_var.set(f"Resultado de la integral: {resultado}")
+Límites:
+r: {self.x_min.get()} → {self.x_max.get()}
+θ: {self.y_min.get()} → {self.y_max.get()}
+z: {self.z_min.get()} → {self.z_max.get()}
 
+Resultado de la integral:
+Valor numérico: {resultado_manual}
+Valor simbólico: {resultado_simbolico}
+Valor simbólico evaluado: {resultado_simbolico_evaluado}
+
+∫ f(r,θ,z) dz dθ dr = {resultado_simbolico} = {resultado_manual}""")
+        
         except Exception as e:
-            messagebox.showerror("Error", f"No se pudo calcular la integral: {str(e)}")
+            # Mostrar mensaje de error
+            import traceback
+            error_msg = f"Error: {str(e)}\n\nDetalles:\n{traceback.format_exc()}"
+            
+            # Mostrar error en la interfaz
+            self.result_var.set(f"Error: {error_msg}")
+            
+            # Opcional: mostrar mensaje de error en una ventana emergente
+            messagebox.showerror("Error en el cálculo", error_msg)
 
 def main():
     root = tk.Tk()
