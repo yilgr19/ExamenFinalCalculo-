@@ -17,10 +17,8 @@ class IntegralCalculator:
         
         # Convertir límites a funciones si son constantes
         x_min, x_max = x_limits
-        y_min = y_limits[0] if callable(y_limits[0]) else sp.Lambda(x, y_limits[0])
-        y_max = y_limits[1] if callable(y_limits[1]) else sp.Lambda(x, y_limits[1])
-        z_min = z_limits[0] if callable(z_limits[0]) else sp.Lambda((x, y), z_limits[0])
-        z_max = z_limits[1] if callable(z_limits[1]) else sp.Lambda((x, y), z_limits[1])
+        y_min, y_max = y_limits
+        z_min, z_max = z_limits
         
         integral = sp.integrate(f, 
                                 (z, z_min, z_max), 
@@ -45,8 +43,7 @@ class IntegralCalculator:
         # Convertir límites a funciones si son constantes
         r_min, r_max = r_limits
         theta_min, theta_max = theta_limits
-        z_min = z_limits[0] if callable(z_limits[0]) else sp.Lambda((r, theta), z_limits[0])
-        z_max = z_limits[1] if callable(z_limits[1]) else sp.Lambda((r, theta), z_limits[1])
+        z_min, z_max = z_limits
         
         # Factor de Jacobiano para coordenadas cilíndricas: r
         jacobiano = r
