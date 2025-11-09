@@ -45,9 +45,21 @@ class IntegralApp:
         function_entry = ttk.Entry(main_frame, textvariable=self.function_var, width=40)
         function_entry.grid(row=2, column=1, sticky=tk.W, pady=5)
 
-        help_text = "Sintaxis: x*y, x^2, sin(x), cos(y), exp(z), sqrt(x), pi, e"
-        ttk.Label(main_frame, text=help_text, font=("Arial", 8), foreground="gray").grid(
-            row=3, column=0, columnspan=2, pady=2)
+        # Guía de sintaxis mejorada
+        syntax_frame = ttk.LabelFrame(main_frame, text="📖 Guía Rápida de Sintaxis", padding="5")
+        syntax_frame.grid(row=3, column=0, columnspan=2, pady=5, sticky=(tk.W, tk.E))
+        
+        syntax_text = tk.Text(syntax_frame, height=4, width=85, wrap=tk.WORD,
+                             font=("Consolas", 8), bg="#f9f9f9", relief=tk.FLAT)
+        syntax_text.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        
+        syntax_content = """OPERADORES: + - * / **    POTENCIAS: x**2, x^2    RAÍZ: sqrt(x)    CONSTANTES: pi, e
+TRIGONOMÉTRICAS: sin(x), cos(x), tan(x), asin(x), acos(x), atan(x)
+HIPERBÓLICAS: sinh(x), cosh(x), tanh(x)    OTRAS: exp(x), log(x), ln(x), abs(x)
+EJEMPLOS: x*y^2, sin(x)*cos(y), e^(-x**2), sqrt(x**2+y**2), x*y*z/(1+x^2)"""
+        
+        syntax_text.insert(1.0, syntax_content)
+        syntax_text.config(state=tk.DISABLED)
 
         limits_frame = ttk.LabelFrame(main_frame, text="Limites de Integracion", padding="10")
         limits_frame.grid(row=4, column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E))
@@ -121,11 +133,11 @@ class IntegralApp:
         self.result_text.insert(1.0, """Calculadora de Integrales Triples - Version Mejorada
 
 Caracteristicas nuevas:
-   Soporta limites con variables (ej: y <= 2-x, z <= x)
-   Procedimiento matematico detallado paso a paso
-   Muestra evaluacion en limites superior e inferior
-   Auto-reload del modulo integral_calculator.py
-   Boton para acceder a TEOREMAS VECTORIALES (Green, Stokes, Divergencia)
+   ✓ Soporta limites con variables (ej: y <= 2-x, z <= x)
+   ✓ Procedimiento matematico detallado paso a paso
+   ✓ Muestra evaluacion en limites superior e inferior
+   ✓ Auto-reload del modulo integral_calculator.py
+   ✓ Boton para acceder a TEOREMAS VECTORIALES (Green, Stokes, Divergencia)
 
 Ejemplos de Limites Variables:
 
@@ -157,7 +169,7 @@ Presiona 'Teoremas Vectoriales' para Green, Stokes y Divergencia
         try:
             nueva_ventana = tk.Toplevel(self.root)
             nueva_ventana.title("Teoremas Vectoriales")
-            nueva_ventana.geometry("800x950")
+            nueva_ventana.geometry("900x1100")
             
             import gui_vector_theorems
             importlib.reload(gui_vector_theorems)
@@ -165,8 +177,8 @@ Presiona 'Teoremas Vectoriales' para Green, Stokes y Divergencia
             gui_vector_theorems.VectorTheoremsApp(nueva_ventana)
             
             nueva_ventana.update_idletasks()
-            x = (nueva_ventana.winfo_screenwidth() // 2) - (400)
-            y = (nueva_ventana.winfo_screenheight() // 2) - (475)
+            x = (nueva_ventana.winfo_screenwidth() // 2) - (450)
+            y = (nueva_ventana.winfo_screenheight() // 2) - (550)
             nueva_ventana.geometry(f"+{x}+{y}")
             
         except ImportError as e:
