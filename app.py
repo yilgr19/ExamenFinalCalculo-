@@ -142,7 +142,7 @@ class IntegralApp:
                                     "   se cargarán automáticamente en cada cálculo.")
 
     def parse_function_complete(self, func_str):
-        """Parser matemático completo mejorado"""
+        """Parser matemático completo mejorado (corregido para evitar sin*(x) error)"""
         print("=" * 60)
         print(f"📝 Parseando función: '{func_str}'")
         
@@ -164,12 +164,15 @@ class IntegralApp:
         
         print(f"   Después de reemplazos: '{func_str}'")
         
-        # Agregar multiplicación implícita
+        # Agregar multiplicación implícita (evita crear sin*(x))
         func_str = re.sub(r'(\d)([a-zA-Z(])', r'\1*\2', func_str)
         func_str = re.sub(r'([a-zA-Z)])(\d)', r'\1*\2', func_str)
         func_str = re.sub(r'\)(\()', r')*\1', func_str)
         func_str = re.sub(r'([a-zA-Z0-9)])(\()', r'\1*\2', func_str)
         func_str = re.sub(r'\)([a-zA-Z])', r')*\1', func_str)
+        func_str = re.sub(r'(?<![a-zA-Z0-9_])sin\*', 'sin', func_str)
+        func_str = re.sub(r'(?<![a-zA-Z0-9_])cos\*', 'cos', func_str)
+        func_str = re.sub(r'(?<![a-zA-Z0-9_])tan\*', 'tan', func_str)
         
         print(f"   Después de multiplicación implícita: '{func_str}'")
         
@@ -177,7 +180,6 @@ class IntegralApp:
         x, y, z = sp.symbols('x y z', real=True)
         r, theta, rho, phi = sp.symbols('r theta rho phi', real=True, positive=True)
         
-        # Diccionario completo
         locals_dict = {
             'x': x, 'y': y, 'z': z,
             'r': r, 'theta': theta, 'rho': rho, 'phi': phi,
@@ -185,299 +187,168 @@ class IntegralApp:
             'sin': sp.sin, 'cos': sp.cos, 'tan': sp.tan,
             'sec': sp.sec, 'csc': sp.csc, 'cot': sp.cot,
             'asin': sp.asin, 'acos': sp.acos, 'atan': sp.atan,
-            'asec': sp.asec, 'acsc': sp.acsc, 'acot': sp.acot,
             'sinh': sp.sinh, 'cosh': sp.cosh, 'tanh': sp.tanh,
             'exp': sp.exp, 'log': sp.log, 'ln': sp.log,
-            'sqrt': sp.sqrt,
-            'cbrt': lambda x: x**(sp.Rational(1, 3)),
-            'abs': sp.Abs, 'Abs': sp.Abs,
+            'sqrt': sp.sqrt, 'abs': sp.Abs, 'Abs': sp.Abs,
         }
         
         try:
             parsed_func = sp.sympify(func_str, locals=locals_dict)
             print(f"✅ Función parseada: {parsed_func}")
-            print(f"   Tipo: {type(parsed_func)}")
-            print("=" * 60)
             return parsed_func
-            
         except Exception as e:
             print(f"❌ ERROR al parsear: {e}")
-            print("=" * 60)
             raise ValueError(f"No se pudo parsear la función: {func_str}\nError: {e}")
-
-    def parse_limit(self, limit_str):
-        """Parsear límites de integración (soporta decimales con coma)"""
-        limit_str = re.sub(r'(\d+),(\d+)', r'\1.\2', limit_str)
-        limit_str = limit_str.replace('π', 'pi').replace('^', '**')
-        return sp.sympify(limit_str, locals={'pi': sp.pi, 'e': sp.E})
 
     def update_coordinate_labels(self, event=None):
         """Actualizar etiquetas de límites según el sistema de coordenadas"""
-        sistema = self.coordinate_system.get()
+        sistema = self.coordinate_system.get().lower()
         
-        if sistema == "rectangular":
-            labels = ["x mín:", "x máx:", "y mín:", "y máx:", "z mín:", "z máx:"]
-        elif sistema == "cilíndrico":
-            labels = ["r mín:", "r máx:", "θ mín:", "θ máx:", "z mín:", "z máx:"]
-        else:  # esférico
-            labels = ["ρ mín:", "ρ máx:", "θ mín:", "θ máx:", "φ mín:", "φ máx:"]
+        # Restablecer visibilidad de todos los límites
+        for entry in self.limit_entries.values():
+            entry.grid()
         
-        limit_names = ["x_min", "x_max", "y_min", "y_max", "z_min", "z_max"]
+        # Etiquetas base
+        labels = {
+            "x_min": "x mín:", "x_max": "x máx:",
+            "y_min": "y mín:", "y_max": "y máx:",
+            "z_min": "z mín:", "z_max": "z máx:"
+        }
         
-        for name, label in zip(limit_names, labels):
-            self.limit_labels[name].config(text=label)
-
-    def clear_results(self):
-        """Limpiar resultados"""
-        self.result_text.delete(1.0, tk.END)
-        self.result_text.insert(1.0, "✅ Resultados limpios. Listo para un nuevo cálculo.")
-
-    def show_examples(self):
-        """Mostrar ejemplos de funciones"""
-        examples = """╔═══════════════════════════════════════════════════════════════════╗
-║                📚 EJEMPLOS DE FUNCIONES                           ║
-╚═══════════════════════════════════════════════════════════════════╝
-
-🔹 BÁSICAS:
-   • x*y*z                    → Producto simple
-   • x^2 + y^2 + z^2          → Suma de cuadrados (Ejercicio A4)
-   • 2*x*y + 3*z              → Combinación lineal
-
-🔹 EJERCICIO A4 (Límites variables):
-   Función: x^2 + y^2 + z^2
-   x: 0 → 1
-   y: 0 → x    (¡límite variable!)
-   z: 0 → y    (¡límite variable!)
-   Resultado esperado: 1/6 ≈ 0.166667
-   
-   ⚠️ IMPORTANTE: Esta calculadora detecta automáticamente el
-      ejercicio A4 y usa un método de cálculo manual optimizado
-      para límites variables.
-
-═══════════════════════════════════════════════════════════════════
-"""
-        self.result_text.delete(1.0, tk.END)
-        self.result_text.insert(1.0, examples)
-
-    def es_ejercicio_a4(self, func_str, limits):
-        """Detecta si es el ejercicio A4 específico"""
-        try:
-            # Normalizar la función
-            func_normalizado = func_str.replace(' ', '').replace('^', '**')
-            
-            # Verificar función: debe ser x**2 + y**2 + z**2 (en cualquier orden)
-            x, y, z = sp.symbols('x y z', real=True)
-            f = self.parse_function_complete(func_str)
-            f_esperada = x**2 + y**2 + z**2
-            
-            if not sp.simplify(f - f_esperada) == 0:
-                return False
-            
-            # Verificar límites
-            x_min, x_max = limits['x']
-            y_min, y_max = limits['y']
-            z_min, z_max = limits['z']
-            
-            # Convertir a strings para comparación
-            if (str(x_min) == '0' and str(x_max) == '1' and
-                str(y_min) == '0' and str(y_max) == 'x' and
-                str(z_min) == '0' and str(z_max) == 'y'):
-                return True
-            
-            return False
-        except:
-            return False
+        # Ajustar etiquetas según sistema de coordenadas
+        if sistema == "cilíndrico":
+            labels = {
+                "x_min": "r mín:", "x_max": "r máx:",
+                "y_min": "θ mín:", "y_max": "θ máx:",
+                "z_min": "z mín:", "z_max": "z máx:"
+            }
+        elif sistema == "esférico":
+            labels = {
+                "x_min": "ρ mín:", "x_max": "ρ máx:",
+                "y_min": "θ mín:", "y_max": "θ máx:",
+                "z_min": "φ mín:", "z_max": "φ máx:"
+            }
+        
+        # Actualizar etiquetas
+        for name, label_text in labels.items():
+            self.limit_labels[name].config(text=label_text)
 
     def calculate_integral(self):
-        """Calcular la integral según el sistema de coordenadas seleccionado"""
+        """Calcular la integral triple según los parámetros ingresados"""
         try:
-            print("\n" + "="*60)
-            print("🚀 NUEVA EJECUCIÓN DE CÁLCULO")
-            print("="*60)
-
-            # Recargar el módulo automáticamente
-            print("🔄 Recargando módulo integral_calculator...")
-            importlib.reload(integral_calculator)
-            print("✅ Módulo recargado exitosamente")
-            
-            IntegralCalculator = integral_calculator.IntegralCalculator
-
-            coordinate_system = self.coordinate_system.get().lower()
-            func_str = self.function_var.get()
-
-            if coordinate_system in ['cilindrico', 'cilíndrico']:
-                coordinate_system = 'cilindrico'
-            elif coordinate_system in ['esférico', 'esferico']:
-                coordinate_system = 'esferico'
-
-            print(f"🎯 Sistema: {coordinate_system}")
-
-            # DETECCIÓN DE EJERCICIO A4
-            if coordinate_system == 'rectangular':
-                limits = {
-                    'x': (self.x_min.get(), self.x_max.get()),
-                    'y': (self.y_min.get(), self.y_max.get()),
-                    'z': (self.z_min.get(), self.z_max.get())
-                }
-                
-                if self.es_ejercicio_a4(func_str, limits):
-                    print("🎯 EJERCICIO A4 DETECTADO - Usando método manual optimizado")
-                    resultado = IntegralCalculator.integral_rectangular_especial_A4()
-                    labels = ('x', 'y', 'z')
-                    
-                    # Crear resultado formateado
-                    resultado_final = f"""{'='*63}
-🎯 EJERCICIO A4 DETECTADO
-{'='*63}
-
-Esta calculadora detectó que estás resolviendo el Ejercicio A4:
-∫∫∫ (x² + y² + z²) con límites variables
-
-Se está usando un método de cálculo manual optimizado.
-
-{'='*63}
-
-{resultado['pasos']}
-
-╔═══════════════════════════════════════════════════════════════╗
-║                     RESULTADO FINAL                           ║
-╚═══════════════════════════════════════════════════════════════╝
-
-✅ Valor numérico: {resultado['resultado_manual']:.15f}
-📝 Expresión simbólica: {resultado['resultado_simbolico']}
-🔢 Como fracción: 1/6
-
-═══════════════════════════════════════════════════════════════
-"""
-                    self.result_text.delete(1.0, tk.END)
-                    self.result_text.insert(1.0, resultado_final)
-                    print("✅ Cálculo A4 completado exitosamente")
-                    print("="*60 + "\n")
-                    return
-
-            # Continuar con el método normal si no es A4
-            f = self.parse_function_complete(func_str)
-
-            if coordinate_system == 'rectangular':
-                x_min = self.parse_limit(self.x_min.get())
-                x_max = self.parse_limit(self.x_max.get())
-                y_min = self.parse_limit(self.y_min.get())
-                y_max = self.parse_limit(self.y_max.get())
-                z_min = self.parse_limit(self.z_min.get())
-                z_max = self.parse_limit(self.z_max.get())
-                
-                resultado = IntegralCalculator.integral_rectangular(
-                    f, [x_min, x_max], [y_min, y_max], [z_min, z_max]
-                )
-                labels = ('x', 'y', 'z')
-
-            elif coordinate_system == 'cilindrico':
-                r_min = self.parse_limit(self.x_min.get())
-                r_max = self.parse_limit(self.x_max.get())
-                theta_min = self.parse_limit(self.y_min.get())
-                theta_max = self.parse_limit(self.y_max.get())
-                z_min = self.parse_limit(self.z_min.get())
-                z_max = self.parse_limit(self.z_max.get())
-                
-                resultado = IntegralCalculator.integral_cylindrical(
-                    f, [r_min, r_max], [theta_min, theta_max], [z_min, z_max]
-                )
-                labels = ('r', 'θ', 'z')
-
-            elif coordinate_system == 'esferico':
-                rho_min = self.parse_limit(self.x_min.get())
-                rho_max = self.parse_limit(self.x_max.get())
-                theta_min = self.parse_limit(self.y_min.get())
-                theta_max = self.parse_limit(self.y_max.get())
-                phi_min = self.parse_limit(self.z_min.get())
-                phi_max = self.parse_limit(self.z_max.get())
-                
-                resultado = IntegralCalculator.integral_spherical(
-                    f, [rho_min, rho_max], [theta_min, theta_max], [phi_min, phi_max]
-                )
-                labels = ('ρ', 'θ', 'φ')
-            else:
-                raise ValueError("Sistema de coordenadas no válido")
-
-            def formatear_numero(valor):
-                if valor is None:
-                    return "❌ None (No se pudo calcular numéricamente)"
-                try:
-                    num_str = f"{valor:.12f}"
-                    num_str = num_str.rstrip('0').rstrip('.')
-                    return num_str
-                except:
-                    return str(valor)
-
-            resultado_manual = formatear_numero(resultado.get('resultado_manual'))
-            resultado_simbolico = str(resultado.get('resultado_simbolico'))
-            resultado_simbolico_evaluado = formatear_numero(resultado.get('resultado_simbolico_evaluado'))
-            pasos = resultado.get('pasos', "Sin pasos")
-
-            resultado_final = f"""{pasos}
-
-╔═══════════════════════════════════════════════════════════════╗
-║                  LÍMITES DE INTEGRACIÓN                       ║
-╚═══════════════════════════════════════════════════════════════╝
-{labels[0]}: {self.x_min.get()} → {self.x_max.get()}
-{labels[1]}: {self.y_min.get()} → {self.y_max.get()}
-{labels[2]}: {self.z_min.get()} → {self.z_max.get()}
-
-╔═══════════════════════════════════════════════════════════════╗
-║                     RESULTADO FINAL                           ║
-╚═══════════════════════════════════════════════════════════════╝
-
-✅ Valor numérico: {resultado_manual}
-📝 Expresión simbólica: {resultado_simbolico}
-🔢 Valor evaluado: {resultado_simbolico_evaluado}
-
-═══════════════════════════════════════════════════════════════
-"""
-
+            # Limpiar resultados anteriores
             self.result_text.delete(1.0, tk.END)
-            self.result_text.insert(1.0, resultado_final)
             
-            print("✅ Cálculo completado exitosamente")
-            print("="*60 + "\n")
-
+            # Obtener sistema de coordenadas
+            sistema = self.coordinate_system.get().lower()
+            
+            # Parsear la función
+            try:
+                funcion = self.parse_function_complete(self.function_var.get())
+            except ValueError as e:
+                messagebox.showerror("Error de Función", str(e))
+                return
+            
+            # Preparar límites
+            limites = [
+                [self.x_min.get(), self.x_max.get()],
+                [self.y_min.get(), self.y_max.get()],
+                [self.z_min.get(), self.z_max.get()]
+            ]
+            
+            # Seleccionar método de integración según sistema de coordenadas
+            calculadora = integral_calculator.IntegralCalculator()
+            
+            if sistema == "rectangular":
+                resultado = calculadora.integral_rectangular(funcion, *limites)
+            elif sistema in ["cilíndrico", "cilindrico"]:
+                resultado = calculadora.integral_cylindrical(funcion, *limites)
+            elif sistema in ["esférico", "esferico"]:
+                resultado = calculadora.integral_spherical(funcion, *limites)
+            else:
+                messagebox.showerror("Error", f"Sistema de coordenadas no válido: {sistema}")
+                return
+            
+            # Mostrar resultados
+            self.result_text.insert(tk.END, resultado['pasos'])
+            
+            # Mostrar resultados numéricos
+            self.result_text.insert(tk.END, "\n\n📊 RESULTADOS FINALES:\n")
+            self.result_text.insert(tk.END, f"• Resultado numérico: {resultado['resultado_manual']}\n")
+            self.result_text.insert(tk.END, f"• Resultado simbólico: {resultado['resultado_simbolico']}\n")
+            
         except Exception as e:
             import traceback
-            error_msg = f"""{'='*70}
-❌ ERROR EN EL CÁLCULO
-{'='*70}
+            error_msg = f"Error inesperado:\n{str(e)}\n\n{traceback.format_exc()}"
+            messagebox.showerror("Error", error_msg)
+            self.result_text.insert(tk.END, error_msg)
 
-Error: {str(e)}
+    def clear_results(self):
+        """Limpiar todos los campos y resultados"""
+        # Restablecer variables de límites
+        self.x_min.set("0")
+        self.x_max.set("1")
+        self.y_min.set("0")
+        self.y_max.set("1")
+        self.z_min.set("0")
+        self.z_max.set("1")
+        
+        # Restablecer función
+        self.function_var.set("x*y*z")
+        
+        # Limpiar resultados
+        self.result_text.delete(1.0, tk.END)
+        self.result_text.insert(1.0, "👋 Bienvenido a la Calculadora de Integrales Triples\n\n"
+                                    "Ingresa una función y límites, luego presiona 'Calcular Integral'.\n"
+                                    "Usa el botón 'Ejemplos' para ver funciones de prueba.\n\n"
+                                    "🔄 AUTO-RELOAD ACTIVADO: Los cambios en integral_calculator.py\n"
+                                    "   se cargarán automáticamente en cada cálculo.")
 
-{'='*70}
-DETALLES TÉCNICOS:
-{'='*70}
-{traceback.format_exc()}
-{'='*70}
+    def show_examples(self):
+        """Mostrar ejemplos de integrales en diferentes sistemas de coordenadas"""
+        ejemplos = """
+🧮 EJEMPLOS DE INTEGRALES TRIPLES
+
+1️⃣ COORDENADAS RECTANGULARES:
+   • Función: x*y*z
+   • Límites: x[0,1], y[0,1], z[0,1]
+   • Resultado esperado: 0.125
+
+2️⃣ COORDENADAS CILÍNDRICAS:
+   • Función: r²*cos(theta)
+   • Límites: r[2,3], θ[π/4,π/2], z[1,2]
+   • Resultado aproximado: 4.76
+
+3️⃣ COORDENADAS ESFÉRICAS:
+   • Función: rho²
+   • Límites: ρ[0,2], θ[0,π], φ[0,π/2]
+   • Resultado aproximado: 32π/5 ≈ 20.11
+
+💡 Consejos:
+- Usa 'pi' para π
+- Usa '*' para multiplicación
+- Funciones soportadas: sin, cos, exp, sqrt, etc.
 """
-            print(error_msg)
-            self.result_text.delete(1.0, tk.END)
-            self.result_text.insert(1.0, error_msg)
-            messagebox.showerror("Error en el cálculo", str(e))
-
+        # Crear ventana de ejemplos
+        examples_window = tk.Toplevel(self.root)
+        examples_window.title("📚 Ejemplos de Integrales")
+        examples_window.geometry("500x500")
+        
+        # Texto con ejemplos
+        examples_text = tk.Text(examples_window, wrap=tk.WORD, font=("Consolas", 10))
+        examples_text.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
+        examples_text.insert(tk.END, ejemplos)
+        examples_text.config(state=tk.DISABLED)  # Solo lectura
+        
+        # Botón de cerrar
+        close_button = ttk.Button(examples_window, text="Cerrar", command=examples_window.destroy)
+        close_button.pack(pady=10)
 
 def main():
-    """Función principal"""
-    print("\n" + "="*60)
-    print("🚀 CALCULADORA DE INTEGRALES TRIPLES")
-    print("="*60)
-    print("📌 Versión con AUTO-RELOAD y detección de Ejercicio A4")
-    print("="*60 + "\n")
-
-    try:
-        root = tk.Tk()
-        app = IntegralApp(root)
-        root.mainloop()
-    except Exception as e:
-        import traceback
-        print("❌ ERROR CRÍTICO:")
-        print(traceback.format_exc())
-        input("Presione Enter para salir...")
-
+    """Función principal para iniciar la aplicación"""
+    root = tk.Tk()
+    app = IntegralApp(root)
+    root.mainloop()
 
 if __name__ == "__main__":
     main()

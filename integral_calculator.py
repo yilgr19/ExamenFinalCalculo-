@@ -6,7 +6,6 @@ VERSIÓN: 4.0 - Solución real para límites variables
 
 import sympy as sp
 
-
 class IntegralCalculator:
     """Clase para calcular integrales triples en diferentes sistemas de coordenadas"""
     
@@ -204,6 +203,7 @@ class IntegralCalculator:
                 "pasos": "\n".join(pasos)
             }
 
+    # Los métodos de coordenadas cilíndricas y esféricas permanecen igual que en el código anterior
     @staticmethod
     def integral_cylindrical(f, r_lim, theta_lim, z_lim):
         """Integral triple en coordenadas cilíndricas - Orden: dz dr dθ"""
@@ -442,7 +442,6 @@ if __name__ == "__main__":
     print("∫∫∫ r²z · r dz dr dθ")
     print("= ∫∫ r³·[z²/2]₀² dr dθ")
     print("= ∫∫ r³·2 dr dθ")
-    print("= ∫∫ 2r³ dr dθ")
     print("= ∫ 2·[r⁴/4]₀¹ dθ")
     print("= ∫ 1/2 dθ")
     print("= [θ/2]₀^(π/2)")
