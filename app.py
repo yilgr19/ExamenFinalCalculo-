@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, scrolledtext
 import sympy as sp
 import sys
 import re
@@ -12,7 +12,8 @@ class IntegralApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Calculadora de Integrales Triples")
-        self.root.geometry("800x1000")
+        self.root.geometry("1000x700")
+        self.root.state('zoomed')  # Maximizar ventana
 
         self.coordinate_system = tk.StringVar(value="rectangular")
         self.function_var = tk.StringVar(value="x+y")
@@ -27,46 +28,53 @@ class IntegralApp:
         self.create_widgets()
 
     def create_widgets(self):
+        # Frame principal con dos columnas
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.columnconfigure(1, weight=2)
+        main_frame.rowconfigure(0, weight=1)
 
-        title_label = ttk.Label(main_frame, text="Calculadora de Integrales Triples", 
-                               font=("Arial", 16, "bold"))
+        # PANEL IZQUIERDO - Controles
+        left_frame = ttk.Frame(main_frame, padding="5")
+        left_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        title_label = ttk.Label(left_frame, text="Calculadora de Integrales Triples", 
+                               font=("Arial", 14, "bold"))
         title_label.grid(row=0, column=0, columnspan=2, pady=10)
 
-        ttk.Label(main_frame, text="Sistema de Coordenadas:").grid(row=1, column=0, sticky=tk.W, pady=5)
-        coordinate_combo = ttk.Combobox(main_frame, textvariable=self.coordinate_system, 
+        ttk.Label(left_frame, text="Sistema de Coordenadas:").grid(row=1, column=0, sticky=tk.W, pady=5)
+        coordinate_combo = ttk.Combobox(left_frame, textvariable=self.coordinate_system, 
                                         values=["rectangular", "cilindrico", "esferico"], 
-                                        state="readonly", width=25)
+                                        state="readonly", width=20)
         coordinate_combo.grid(row=1, column=1, sticky=tk.W, pady=5)
         coordinate_combo.bind("<<ComboboxSelected>>", self.update_coordinate_labels)
 
-        ttk.Label(main_frame, text="Funcion a integrar:").grid(row=2, column=0, sticky=tk.W, pady=5)
-        function_entry = ttk.Entry(main_frame, textvariable=self.function_var, width=40)
-        function_entry.grid(row=2, column=1, sticky=tk.W, pady=5)
+        ttk.Label(left_frame, text="Funcion a integrar:").grid(row=2, column=0, sticky=tk.W, pady=5)
+        function_entry = ttk.Entry(left_frame, textvariable=self.function_var, width=25)
+        function_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=5)
 
-        # Guía de sintaxis mejorada
-        syntax_frame = ttk.LabelFrame(main_frame, text="📖 Guía Rápida de Sintaxis", padding="5")
+        # Guía de sintaxis compacta
+        syntax_frame = ttk.LabelFrame(left_frame, text="📖 Sintaxis", padding="5")
         syntax_frame.grid(row=3, column=0, columnspan=2, pady=5, sticky=(tk.W, tk.E))
         
-        syntax_text = tk.Text(syntax_frame, height=4, width=85, wrap=tk.WORD,
-                             font=("Consolas", 8), bg="#f9f9f9", relief=tk.FLAT)
-        syntax_text.grid(row=0, column=0, sticky=(tk.W, tk.E))
-        
-        syntax_content = """OPERADORES: + - * / **    POTENCIAS: x**2, x^2    RAÍZ: sqrt(x)    CONSTANTES: pi, e
-TRIGONOMÉTRICAS: sin(x), cos(x), tan(x), asin(x), acos(x), atan(x)
-HIPERBÓLICAS: sinh(x), cosh(x), tanh(x)    OTRAS: exp(x), log(x), ln(x), abs(x)
-EJEMPLOS: x*y^2, sin(x)*cos(y), e^(-x**2), sqrt(x**2+y**2), x*y*z/(1+x^2)"""
-        
-        syntax_text.insert(1.0, syntax_content)
-        syntax_text.config(state=tk.DISABLED)
+        syntax_label = ttk.Label(syntax_frame, 
+                                text="Operadores: + - * / **\n"
+                                     "Funciones: sin() cos() sqrt() exp() log()\n"
+                                     "Constantes: pi, e\n"
+                                     "Ejemplo: x*y^2, sin(x)*cos(y)",
+                                font=("Arial", 8), justify=tk.LEFT)
+        syntax_label.pack(anchor=tk.W)
 
-        limits_frame = ttk.LabelFrame(main_frame, text="Limites de Integracion", padding="10")
+        limits_frame = ttk.LabelFrame(left_frame, text="Limites de Integracion", padding="5")
         limits_frame.grid(row=4, column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E))
 
         instruccion = ttk.Label(limits_frame, 
-                               text="IMPORTANTE: Puedes usar variables en los limites (ej: 2-x, x, sqrt(y))",
-                               font=("Arial", 9, "bold"), foreground="blue")
+                               text="Puedes usar variables\n(ej: 2-x, sqrt(y))",
+                               font=("Arial", 8, "bold"), foreground="blue")
         instruccion.grid(row=0, column=0, columnspan=4, pady=5)
 
         self.limit_labels = {
@@ -79,12 +87,12 @@ EJEMPLOS: x*y^2, sin(x)*cos(y), e^(-x**2), sqrt(x**2+y**2), x*y*z/(1+x^2)"""
         }
 
         self.limit_entries = {
-            "x_min": ttk.Entry(limits_frame, textvariable=self.x_min, width=15),
-            "x_max": ttk.Entry(limits_frame, textvariable=self.x_max, width=15),
-            "y_min": ttk.Entry(limits_frame, textvariable=self.y_min, width=15),
-            "y_max": ttk.Entry(limits_frame, textvariable=self.y_max, width=15),
-            "z_min": ttk.Entry(limits_frame, textvariable=self.z_min, width=15),
-            "z_max": ttk.Entry(limits_frame, textvariable=self.z_max, width=15)
+            "x_min": ttk.Entry(limits_frame, textvariable=self.x_min, width=12),
+            "x_max": ttk.Entry(limits_frame, textvariable=self.x_max, width=12),
+            "y_min": ttk.Entry(limits_frame, textvariable=self.y_min, width=12),
+            "y_max": ttk.Entry(limits_frame, textvariable=self.y_max, width=12),
+            "z_min": ttk.Entry(limits_frame, textvariable=self.z_min, width=12),
+            "z_max": ttk.Entry(limits_frame, textvariable=self.z_max, width=12)
         }
 
         positions = [
@@ -93,83 +101,79 @@ EJEMPLOS: x*y^2, sin(x)*cos(y), e^(-x**2), sqrt(x**2+y**2), x*y*z/(1+x^2)"""
             ("z_min", 3, 0), ("z_max", 3, 2)
         ]
         for name, r, c in positions:
-            self.limit_labels[name].grid(row=r, column=c, sticky=tk.E, padx=5, pady=5)
-            self.limit_entries[name].grid(row=r, column=c+1, sticky=(tk.W, tk.E), padx=5, pady=5)
+            self.limit_labels[name].grid(row=r, column=c, sticky=tk.E, padx=3, pady=3)
+            self.limit_entries[name].grid(row=r, column=c+1, sticky=(tk.W, tk.E), padx=3, pady=3)
 
-        button_frame = ttk.Frame(main_frame)
+        button_frame = ttk.Frame(left_frame)
         button_frame.grid(row=5, column=0, columnspan=2, pady=15)
         
-        ttk.Button(button_frame, text="Calcular Integral", 
-                  command=self.calculate_integral).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="Calcular", 
+                  command=self.calculate_integral, width=15).pack(pady=3)
         ttk.Button(button_frame, text="Limpiar", 
-                  command=self.clear_results).pack(side=tk.LEFT, padx=5)
+                  command=self.clear_results, width=15).pack(pady=3)
         ttk.Button(button_frame, text="Ejemplos", 
-                  command=self.show_examples).pack(side=tk.LEFT, padx=5)
-        
+                  command=self.show_examples, width=15).pack(pady=3)
         ttk.Button(button_frame, text="Teoremas Vectoriales", 
-                  command=self.open_vector_theorems, 
-                  style="Accent.TButton").pack(side=tk.LEFT, padx=5)
+                  command=self.open_vector_theorems, width=15).pack(pady=3)
 
-        result_frame = ttk.LabelFrame(main_frame, text="Resultado Detallado", padding="5")
-        result_frame.grid(row=6, column=0, columnspan=2, pady=10, sticky='nsew')
+        # PANEL DERECHO - Resultados (MÁS GRANDE)
+        right_frame = ttk.LabelFrame(main_frame, text="📊 Resultado Detallado", padding="5")
+        right_frame.grid(row=0, column=1, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(10, 0))
+        right_frame.columnconfigure(0, weight=1)
+        right_frame.rowconfigure(0, weight=1)
         
-        self.result_text = tk.Text(result_frame, height=24, width=85, wrap=tk.WORD,
-                                   font=("Consolas", 9), bg="#f5f5f5", state=tk.DISABLED)
-        scrollbar = ttk.Scrollbar(result_frame, orient="vertical", command=self.result_text.yview)
-        self.result_text.configure(yscrollcommand=scrollbar.set)
+        # Usar ScrolledText para mejor scroll
+        self.result_text = scrolledtext.ScrolledText(
+            right_frame, 
+            wrap=tk.WORD,
+            font=("Consolas", 10),
+            bg="#f5f5f5",
+            relief=tk.SOLID,
+            borderwidth=1
+        )
         self.result_text.grid(row=0, column=0, sticky='nsew')
-        scrollbar.grid(row=0, column=1, sticky='ns')
-
-        result_frame.grid_rowconfigure(0, weight=1)
-        result_frame.grid_columnconfigure(0, weight=1)
-        main_frame.grid_rowconfigure(6, weight=1)
-        main_frame.grid_columnconfigure(1, weight=1)
-
-        style = ttk.Style()
-        style.configure("Accent.TButton", foreground="blue", font=("Arial", 9, "bold"))
 
         self.update_coordinate_labels()
-        self.result_text.config(state=tk.NORMAL)
-        self.result_text.insert(1.0, """Calculadora de Integrales Triples - Version Mejorada
+        self.result_text.insert(1.0, """═══════════════════════════════════════════════════════════
+  CALCULADORA DE INTEGRALES TRIPLES - VERSIÓN MEJORADA
+═══════════════════════════════════════════════════════════
 
-Caracteristicas nuevas:
-   ✓ Soporta limites con variables (ej: y <= 2-x, z <= x)
-   ✓ Procedimiento matematico detallado paso a paso
-   ✓ Muestra evaluacion en limites superior e inferior
-   ✓ Auto-reload del modulo integral_calculator.py
-   ✓ Boton para acceder a TEOREMAS VECTORIALES (Green, Stokes, Divergencia)
+✓ Soporta límites con variables (ej: y ≤ 2-x, z ≤ x)
+✓ Procedimiento matemático detallado paso a paso
+✓ Muestra evaluación en límites superior e inferior
+✓ Teoremas Vectoriales (Green, Stokes, Divergencia)
 
-Ejemplos de Limites Variables:
+EJEMPLOS DE LÍMITES VARIABLES:
 
-   A5) Funcion: x+y
-       x: 0 -> 2
-       y: 0 -> 2-x  <- Depende de x
-       z: 0 -> 1
-       Resultado: 8/3
+A5) Función: x+y
+    x: 0 → 2
+    y: 0 → 2-x  ← Depende de x
+    z: 0 → 1
+    Resultado: 8/3
 
-   A6) Funcion: x*y^2*z
-       x: 1 -> 2
-       y: 0 -> 1
-       z: 0 -> x    <- Depende de x
-       Resultado: 7/6
+A6) Función: x*y^2*z
+    x: 1 → 2
+    y: 0 → 1
+    z: 0 → x    ← Depende de x
+    Resultado: 7/6
 
-   A7) Funcion: x^2 + y
-       x: 0 -> 1
-       y: 0 -> 1
-       z: x -> 1    <- Limite inferior depende de x
-       Resultado: 5/6
+A7) Función: x^2 + y
+    x: 0 → 1
+    y: 0 → 1
+    z: x → 1    ← Límite inferior depende de x
+    Resultado: 5/6
 
-Presiona 'Calcular Integral' para comenzar
-Presiona 'Ejemplos' para ver mas casos de uso
-Presiona 'Teoremas Vectoriales' para Green, Stokes y Divergencia
+═══════════════════════════════════════════════════════════
+Presiona 'Calcular' para comenzar
+Presiona 'Ejemplos' para ver más casos de uso
+═══════════════════════════════════════════════════════════
 """)
-        self.result_text.config(state=tk.DISABLED)
 
     def open_vector_theorems(self):
         try:
             nueva_ventana = tk.Toplevel(self.root)
             nueva_ventana.title("Teoremas Vectoriales")
-            nueva_ventana.geometry("900x1100")
+            nueva_ventana.geometry("900x1150")
             
             import gui_vector_theorems
             importlib.reload(gui_vector_theorems)
@@ -276,65 +280,65 @@ Presiona 'Teoremas Vectoriales' para Green, Stokes y Divergencia
             self.limit_labels[name].config(text=label)
 
     def clear_results(self):
-        self.result_text.config(state=tk.NORMAL)
         self.result_text.delete(1.0, tk.END)
-        self.result_text.insert(1.0, "Resultados limpios. Listo para un nuevo calculo.")
-        self.result_text.config(state=tk.DISABLED)
+        self.result_text.insert(1.0, "═══════════════════════════════════════════\nResultados limpiados.\nListo para un nuevo cálculo.\n═══════════════════════════════════════════")
 
     def show_examples(self):
-        examples = """Ejemplos de Funciones y Limites
+        examples = """═══════════════════════════════════════════════════════════
+  EJEMPLOS DE FUNCIONES Y LÍMITES
+═══════════════════════════════════════════════════════════
 
-Ejercicio A5 - Limites variables:
+EJERCICIO A5 - Límites variables:
    Sistema: Rectangular
-   Funcion: x+y
-   Limites:
-     x: 0 -> 2
-     y: 0 -> 2-x     <- Variable
-     z: 0 -> 1
+   Función: x+y
+   Límites:
+     x: 0 → 2
+     y: 0 → 2-x     ← Variable
+     z: 0 → 1
    Resultado: 8/3 ≈ 2.666667
 
-Ejercicio A6 - Limites variables:
+EJERCICIO A6 - Límites variables:
    Sistema: Rectangular
-   Funcion: x*y^2*z
-   Limites:
-     x: 1 -> 2
-     y: 0 -> 1
-     z: 0 -> x       <- Variable
+   Función: x*y^2*z
+   Límites:
+     x: 1 → 2
+     y: 0 → 1
+     z: 0 → x       ← Variable
    Resultado: 7/6 ≈ 1.166667
 
-Ejercicio A7 - Limites variables:
+EJERCICIO A7 - Límites variables:
    Sistema: Rectangular
-   Funcion: x^2 + y
-   Limites:
-     x: 0 -> 1
-     y: 0 -> 1
-     z: x -> 1       <- Limite inferior variable
+   Función: x^2 + y
+   Límites:
+     x: 0 → 1
+     y: 0 → 1
+     z: x → 1       ← Límite inferior variable
    Resultado: 5/6 ≈ 0.833333
 
-Coordenadas Cilindricas:
-   Funcion: r**2*sin(theta)
-   Limites:
-     r: 0 -> 2
-     theta: 0 -> pi
-     z: 0 -> 3
+COORDENADAS CILÍNDRICAS:
+   Función: r**2*sin(theta)
+   Límites:
+     r: 0 → 2
+     theta: 0 → pi
+     z: 0 → 3
 
-Coordenadas Esfericas:
-   Funcion: rho**2*sin(phi)
-   Limites:
-     rho: 0 -> 1
-     theta: 0 -> 2*pi
-     phi: 0 -> pi
+COORDENADAS ESFÉRICAS:
+   Función: rho**2*sin(phi)
+   Límites:
+     rho: 0 → 1
+     theta: 0 → 2*pi
+     phi: 0 → pi
 
-Tip: Los limites pueden contener expresiones algebraicas con las
-     variables de integracion anteriores.
-        
-Para teoremas de Green, Stokes y Divergencia, usa el boton
-'Teoremas Vectoriales'
+TIP: Los límites pueden contener expresiones algebraicas
+     con las variables de integración anteriores.
+
+═══════════════════════════════════════════════════════════
+Para teoremas de Green, Stokes y Divergencia,
+usa el botón 'Teoremas Vectoriales'
+═══════════════════════════════════════════════════════════
 """
-        self.result_text.config(state=tk.NORMAL)
         self.result_text.delete(1.0, tk.END)
         self.result_text.insert(1.0, examples)
-        self.result_text.config(state=tk.DISABLED)
 
     def calculate_integral(self):
         try:
@@ -383,11 +387,9 @@ Para teoremas de Green, Stokes y Divergencia, usa el boton
                     f, [x_min, x_max], [y_min, y_max], [z_min, z_max]
                 )
 
-            self.result_text.config(state=tk.NORMAL)
             self.result_text.delete(1.0, tk.END)
             self.result_text.insert(1.0, resultado["pasos"])
-            self.result_text.see(tk.END)
-            self.result_text.config(state=tk.DISABLED)
+            self.result_text.see(1.0)  # Volver al inicio
             
             print("\nCalculo completado exitosamente")
             

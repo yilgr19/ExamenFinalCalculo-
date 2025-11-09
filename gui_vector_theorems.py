@@ -28,7 +28,7 @@ class VectorTheoremsApp:
             return
         
         try:
-            self.root.geometry("900x1100")
+            self.root.geometry("900x1150")
         except:
             pass
         
@@ -83,22 +83,39 @@ class VectorTheoremsApp:
         ttk.Label(main_frame, text="Calculadora de Teoremas Vectoriales",
                   font=("Arial", 16, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
         
-        ttk.Label(main_frame, text="Seleccionar Teorema:").grid(row=1, column=0, sticky=tk.W, pady=5)
+        # Guía de sintaxis
+        syntax_frame = ttk.LabelFrame(main_frame, text="📖 Guía Rápida de Sintaxis", padding="5")
+        syntax_frame.grid(row=1, column=0, columnspan=2, pady=5, sticky=(tk.W, tk.E))
+        
+        syntax_text = tk.Text(syntax_frame, height=5, width=100, wrap=tk.WORD,
+                             font=("Consolas", 8), bg="#f9f9f9", relief=tk.FLAT)
+        syntax_text.grid(row=0, column=0, sticky=(tk.W, tk.E))
+        
+        syntax_content = """OPERADORES: + - * / **    POTENCIAS: x**2, r^2    RAÍZ: sqrt(x)    CONSTANTES: pi, e
+TRIGONOMÉTRICAS: sin(x), cos(y), tan(theta), asin(x), acos(x), atan(x)
+HIPERBÓLICAS: sinh(x), cosh(x), tanh(x)    OTRAS: exp(x), log(x), ln(x), abs(x)
+VARIABLES COMUNES: x, y, z, r, theta, rho, phi, u, v
+EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**2)"""
+        
+        syntax_text.insert(1.0, syntax_content)
+        syntax_text.config(state=tk.DISABLED)
+        
+        ttk.Label(main_frame, text="Seleccionar Teorema:").grid(row=2, column=0, sticky=tk.W, pady=5)
         theorem_combo = ttk.Combobox(main_frame, textvariable=self.theorem_type,
                                     values=["green", "stokes", "divergencia"],
                                     state="readonly", width=25)
-        theorem_combo.grid(row=1, column=1, sticky=tk.W, pady=5)
+        theorem_combo.grid(row=2, column=1, sticky=tk.W, pady=5)
         theorem_combo.bind("<<ComboboxSelected>>", self.change_theorem)
         
         self.notebook = ttk.Notebook(main_frame)
-        self.notebook.grid(row=2, column=0, columnspan=2, pady=10, sticky='nsew')
+        self.notebook.grid(row=3, column=0, columnspan=2, pady=10, sticky='nsew')
         
         self.create_green_tab()
         self.create_stokes_tab()
         self.create_divergence_tab()
         
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=3, column=0, columnspan=2, pady=15)
+        button_frame.grid(row=4, column=0, columnspan=2, pady=15)
         ttk.Button(button_frame, text="🧮 Calcular",
                   command=self.calculate).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="🗑️ Limpiar",
@@ -107,9 +124,9 @@ class VectorTheoremsApp:
                   command=self.show_examples).pack(side=tk.LEFT, padx=5)
         
         result_frame = ttk.LabelFrame(main_frame, text="Resultado Detallado", padding="5")
-        result_frame.grid(row=4, column=0, columnspan=2, pady=10, sticky='nsew')
+        result_frame.grid(row=5, column=0, columnspan=2, pady=10, sticky='nsew')
         
-        self.result_text = tk.Text(result_frame, height=20, width=100, wrap=tk.WORD,
+        self.result_text = tk.Text(result_frame, height=18, width=100, wrap=tk.WORD,
                                     font=("Consolas", 9), bg="#f5f5f5", state=tk.DISABLED)
         scrollbar = ttk.Scrollbar(result_frame, orient="vertical", command=self.result_text.yview)
         self.result_text.configure(yscrollcommand=scrollbar.set)
@@ -118,7 +135,7 @@ class VectorTheoremsApp:
         
         result_frame.grid_rowconfigure(0, weight=1)
         result_frame.grid_columnconfigure(0, weight=1)
-        main_frame.grid_rowconfigure(4, weight=1)
+        main_frame.grid_rowconfigure(5, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
         
         self.show_welcome_message()
@@ -377,15 +394,18 @@ TEOREMAS DISPONIBLES:
 
 🟢 TEOREMA DE GREEN
    ∮_C (P dx + Q dy) = ∬_R (∂Q/∂x - ∂P/∂y) dA
+   Relaciona una integral de línea cerrada con una integral doble sobre la región
 
 🔵 TEOREMA DE STOKES
    ∮_C F·dr = ∬_S (∇×F)·n dS
+   Relaciona una integral de línea cerrada con una integral de superficie
 
 🔴 TEOREMA DE LA DIVERGENCIA (GAUSS)
    ∬_S F·n dS = ∭_V (∇·F) dV
+   Relaciona el flujo a través de una superficie cerrada con la divergencia en el volumen
 
-📚 Presiona 'Ejemplos' para ver casos de uso
-🧮 Selecciona un teorema y presiona 'Calcular'
+📚 Presiona 'Ejemplos' para ver casos de uso detallados
+🧮 Selecciona un teorema arriba y presiona 'Calcular'
 """
         self.result_text.config(state=tk.NORMAL)
         self.result_text.insert(1.0, mensaje)
@@ -394,23 +414,54 @@ TEOREMAS DISPONIBLES:
     def show_examples(self):
         examples = """EJEMPLOS DE USO
 
-🟢 TEOREMA DE GREEN - Ejemplo:
-    P = -y,  Q = x
-    Región: [0,1] × [0,1]
+🟢 TEOREMA DE GREEN - Ejemplo Básico:
+    Campo: F = (-y, x)
+    Componentes: P = -y,  Q = x
+    Región: Cuadrado [0,1] × [0,1]
+    Tipo: rectangular
+    
+    Cálculo:
+    ∂Q/∂x - ∂P/∂y = ∂(x)/∂x - ∂(-y)/∂y = 1 - (-1) = 2
+    Integral: ∬ 2 dA = 2 × (área) = 2 × 1 = 2
+    
     Resultado: 2
 
 🔵 TEOREMA DE STOKES - Ejemplo:
-    F = (y, -x, z)
-    Superficie: z = 1 - x² - y²
-    Parametrización: x=u·cos(v), y=u·sin(v), z=1-u²
-    Límites: u∈[0,1], v∈[0,2π]
+    Campo: F = (y, -x, z)
+    Componentes: Fx = y, Fy = -x, Fz = z
+    
+    Superficie: Paraboloide z = 1 - x² - y²
+    Parametrización: 
+      x(u,v) = u·cos(v)
+      y(u,v) = u·sin(v)
+      z(u,v) = 1 - u²
+    
+    Límites: u ∈ [0, 1], v ∈ [0, 2π]
+    
+    Rotacional: ∇×F = (0, 0, -2)
+    El teorema calcula el flujo del rotacional a través de la superficie
 
-🔴 TEOREMA DIVERGENCIA - Ejemplo (Campo radial):
-    F = (2xr², 2yr², 2zr²)  donde r = √(x²+y²+z²)
-    Sistema: esférico
-    Límites: ρ∈[0,1], θ∈[0,2π], φ∈[0,π]
-    Divergencia: ∇·F = 5ρ²
-    Resultado: 4π/5 × (5) = 4π
+🔴 TEOREMA DIVERGENCIA - Ejemplo Campo Radial:
+    Campo: F = (2xr², 2yr², 2zr²)  donde r = √(x²+y²+z²)
+    Componentes: 
+      Fx = 2*x*r**2
+      Fy = 2*y*r**2
+      Fz = 2*z*r**2
+    
+    Sistema: spherical (esférico)
+    Región: Esfera unitaria
+    Límites: ρ ∈ [0,1], θ ∈ [0,2π], φ ∈ [0,π]
+    
+    Divergencia: ∇·F = ∂Fx/∂x + ∂Fy/∂y + ∂Fz/∂z
+    Se calcula la integral triple de la divergencia sobre el volumen
+
+CONSEJOS:
+• Usa multiplicación explícita: 2*x en lugar de 2x
+• Potencias: x**2 o x^2
+• Constantes: pi para π, e para número de Euler
+• Funciones: sqrt(x), sin(x), cos(x), exp(x), log(x)
+• Variables de parametrización: u, v para superficies
+• Coordenadas: x,y,z (rectangular), r,theta,z (cilíndrico), rho,theta,phi (esférico)
 """
         self.result_text.config(state=tk.NORMAL)
         self.result_text.delete(1.0, tk.END)
