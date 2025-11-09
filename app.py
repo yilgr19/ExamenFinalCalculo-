@@ -5,21 +5,18 @@ import sys
 import re
 import importlib
 
-# Importar el módulo
 import integral_calculator
 
 
 class IntegralApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("🧮 Calculadora de Integrales Triples")
+        self.root.title("Calculadora de Integrales Triples")
         self.root.geometry("800x1000")
 
-        # Variables de control
         self.coordinate_system = tk.StringVar(value="rectangular")
         self.function_var = tk.StringVar(value="x+y")
         
-        # Límites de integración
         self.x_min = tk.StringVar(value="0")
         self.x_max = tk.StringVar(value="2")
         self.y_min = tk.StringVar(value="0")
@@ -33,46 +30,40 @@ class IntegralApp:
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
-        # Título
         title_label = ttk.Label(main_frame, text="Calculadora de Integrales Triples", 
                                font=("Arial", 16, "bold"))
         title_label.grid(row=0, column=0, columnspan=2, pady=10)
 
-        # Sistema de coordenadas
         ttk.Label(main_frame, text="Sistema de Coordenadas:").grid(row=1, column=0, sticky=tk.W, pady=5)
         coordinate_combo = ttk.Combobox(main_frame, textvariable=self.coordinate_system, 
-                                        values=["rectangular", "cilíndrico", "esférico"], 
+                                        values=["rectangular", "cilindrico", "esferico"], 
                                         state="readonly", width=25)
         coordinate_combo.grid(row=1, column=1, sticky=tk.W, pady=5)
         coordinate_combo.bind("<<ComboboxSelected>>", self.update_coordinate_labels)
 
-        # Función a integrar
-        ttk.Label(main_frame, text="Función a integrar:").grid(row=2, column=0, sticky=tk.W, pady=5)
+        ttk.Label(main_frame, text="Funcion a integrar:").grid(row=2, column=0, sticky=tk.W, pady=5)
         function_entry = ttk.Entry(main_frame, textvariable=self.function_var, width=40)
         function_entry.grid(row=2, column=1, sticky=tk.W, pady=5)
 
-        # Ayuda de sintaxis
-        help_text = "💡 Sintaxis: x*y, x^2, sin(x), cos(y), exp(z), sqrt(x), pi, e"
+        help_text = "Sintaxis: x*y, x^2, sin(x), cos(y), exp(z), sqrt(x), pi, e"
         ttk.Label(main_frame, text=help_text, font=("Arial", 8), foreground="gray").grid(
             row=3, column=0, columnspan=2, pady=2)
 
-        # Frame de límites con instrucciones
-        limits_frame = ttk.LabelFrame(main_frame, text="Límites de Integración", padding="10")
+        limits_frame = ttk.LabelFrame(main_frame, text="Limites de Integracion", padding="10")
         limits_frame.grid(row=4, column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E))
 
-        # Instrucción importante
         instruccion = ttk.Label(limits_frame, 
-                               text="⚠️ IMPORTANTE: Puedes usar variables en los límites (ej: 2-x, x, sqrt(y))",
+                               text="IMPORTANTE: Puedes usar variables en los limites (ej: 2-x, x, sqrt(y))",
                                font=("Arial", 9, "bold"), foreground="blue")
         instruccion.grid(row=0, column=0, columnspan=4, pady=5)
 
         self.limit_labels = {
-            "x_min": ttk.Label(limits_frame, text="x mín:"),
-            "x_max": ttk.Label(limits_frame, text="x máx:"),
-            "y_min": ttk.Label(limits_frame, text="y mín:"),
-            "y_max": ttk.Label(limits_frame, text="y máx:"),
-            "z_min": ttk.Label(limits_frame, text="z mín:"),
-            "z_max": ttk.Label(limits_frame, text="z máx:")
+            "x_min": ttk.Label(limits_frame, text="x min:"),
+            "x_max": ttk.Label(limits_frame, text="x max:"),
+            "y_min": ttk.Label(limits_frame, text="y min:"),
+            "y_max": ttk.Label(limits_frame, text="y max:"),
+            "z_min": ttk.Label(limits_frame, text="z min:"),
+            "z_max": ttk.Label(limits_frame, text="z max:")
         }
 
         self.limit_entries = {
@@ -93,22 +84,20 @@ class IntegralApp:
             self.limit_labels[name].grid(row=r, column=c, sticky=tk.E, padx=5, pady=5)
             self.limit_entries[name].grid(row=r, column=c+1, sticky=(tk.W, tk.E), padx=5, pady=5)
 
-        # Botones
         button_frame = ttk.Frame(main_frame)
         button_frame.grid(row=5, column=0, columnspan=2, pady=15)
         
-        ttk.Button(button_frame, text="🧮 Calcular Integral", 
+        ttk.Button(button_frame, text="Calcular Integral", 
                   command=self.calculate_integral).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="🗑️ Limpiar", 
+        ttk.Button(button_frame, text="Limpiar", 
                   command=self.clear_results).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="📚 Ejemplos", 
+        ttk.Button(button_frame, text="Ejemplos", 
                   command=self.show_examples).pack(side=tk.LEFT, padx=5)
         
-        ttk.Button(button_frame, text="📐 Teoremas Vectoriales", 
+        ttk.Button(button_frame, text="Teoremas Vectoriales", 
                   command=self.open_vector_theorems, 
                   style="Accent.TButton").pack(side=tk.LEFT, padx=5)
 
-        # Resultado - CON STATE=DISABLED
         result_frame = ttk.LabelFrame(main_frame, text="Resultado Detallado", padding="5")
         result_frame.grid(row=6, column=0, columnspan=2, pady=10, sticky='nsew')
         
@@ -124,54 +113,50 @@ class IntegralApp:
         main_frame.grid_rowconfigure(6, weight=1)
         main_frame.grid_columnconfigure(1, weight=1)
 
-        # Configurar estilo para el botón especial
         style = ttk.Style()
         style.configure("Accent.TButton", foreground="blue", font=("Arial", 9, "bold"))
 
         self.update_coordinate_labels()
         self.result_text.config(state=tk.NORMAL)
-        self.result_text.insert(1.0, """╔══════════════════════════════════════════════════════════════════╗
-║     👋 CALCULADORA DE INTEGRALES TRIPLES - VERSIÓN MEJORADA      ║
-╚══════════════════════════════════════════════════════════════════╝
+        self.result_text.insert(1.0, """Calculadora de Integrales Triples - Version Mejorada
 
-✨ CARACTERÍSTICAS NUEVAS:
-   • ✅ Soporta límites con variables (ej: y ≤ 2-x, z ≤ x)
-   • ✅ Procedimiento matemático detallado paso a paso
-   • ✅ Muestra evaluación en límites superior e inferior
-   • ✅ Auto-reload del módulo integral_calculator.py
-   • ✨ Botón para acceder a TEOREMAS VECTORIALES (Green, Stokes, Divergencia)
+Caracteristicas nuevas:
+   Soporta limites con variables (ej: y <= 2-x, z <= x)
+   Procedimiento matematico detallado paso a paso
+   Muestra evaluacion en limites superior e inferior
+   Auto-reload del modulo integral_calculator.py
+   Boton para acceder a TEOREMAS VECTORIALES (Green, Stokes, Divergencia)
 
-📝 EJEMPLOS DE LÍMITES VARIABLES:
+Ejemplos de Limites Variables:
 
-   A5) Función: x+y
-       x: 0 → 2
-       y: 0 → 2-x  ← Depende de x
-       z: 0 → 1
+   A5) Funcion: x+y
+       x: 0 -> 2
+       y: 0 -> 2-x  <- Depende de x
+       z: 0 -> 1
        Resultado: 8/3
 
-   A6) Función: x*y^2*z
-       x: 1 → 2
-       y: 0 → 1
-       z: 0 → x    ← Depende de x
+   A6) Funcion: x*y^2*z
+       x: 1 -> 2
+       y: 0 -> 1
+       z: 0 -> x    <- Depende de x
        Resultado: 7/6
 
-   A7) Función: x^2 + y
-       x: 0 → 1
-       y: 0 → 1
-       z: x → 1    ← Límite inferior depende de x
+   A7) Funcion: x^2 + y
+       x: 0 -> 1
+       y: 0 -> 1
+       z: x -> 1    <- Limite inferior depende de x
        Resultado: 5/6
 
-🚀 Presiona 'Calcular Integral' para comenzar
-📚 Presiona 'Ejemplos' para ver más casos de uso
-📐 Presiona 'Teoremas Vectoriales' para Green, Stokes y Divergencia
+Presiona 'Calcular Integral' para comenzar
+Presiona 'Ejemplos' para ver mas casos de uso
+Presiona 'Teoremas Vectoriales' para Green, Stokes y Divergencia
 """)
         self.result_text.config(state=tk.DISABLED)
 
     def open_vector_theorems(self):
-        """Abre una nueva ventana con la calculadora de teoremas vectoriales"""
         try:
             nueva_ventana = tk.Toplevel(self.root)
-            nueva_ventana.title("🧮 Teoremas Vectoriales")
+            nueva_ventana.title("Teoremas Vectoriales")
             nueva_ventana.geometry("800x950")
             
             import gui_vector_theorems
@@ -187,29 +172,28 @@ class IntegralApp:
         except ImportError as e:
             messagebox.showerror(
                 "Error al abrir Teoremas Vectoriales",
-                "No se pudo cargar el módulo 'gui_vector_theorems.py'\n\n"
-                "Asegúrate de que el archivo esté en la misma carpeta que app.py\n\n"
-                f"Error técnico: {str(e)}"
+                "No se pudo cargar el modulo 'gui_vector_theorems.py'\n\n"
+                "Asegurate de que el archivo este en la misma carpeta que app.py\n\n"
+                f"Error tecnico: {str(e)}"
             )
         except AttributeError as e:
             messagebox.showerror(
-                "Error de Configuración",
-                "El módulo 'gui_vector_theorems' no tiene la clase 'VectorTheoremsApp'\n\n"
-                "Verifica que el archivo esté completo y correctamente guardado.\n\n"
-                f"Error técnico: {str(e)}"
+                "Error de Configuracion",
+                "El modulo 'gui_vector_theorems' no tiene la clase 'VectorTheoremsApp'\n\n"
+                "Verifica que el archivo este completo y correctamente guardado.\n\n"
+                f"Error tecnico: {str(e)}"
             )
         except Exception as e:
             messagebox.showerror(
                 "Error",
-                f"Ocurrió un error al abrir Teoremas Vectoriales:\n\n{str(e)}"
+                f"Ocurrio un error al abrir Teoremas Vectoriales:\n\n{str(e)}"
             )
             import traceback
             traceback.print_exc()
 
     def parse_function_complete(self, func_str):
-        """Parser matemático completo"""
         print("="*60)
-        print(f"📝 Parseando función: '{func_str}'")
+        print(f"Parseando funcion: '{func_str}'")
 
         func_str = re.sub(r'(\d+),(\d+)', r'\1.\2', func_str)
         
@@ -226,7 +210,7 @@ class IntegralApp:
         func_str = re.sub(r'([a-zA-Z)])(\d)', r'\1*\2', func_str)
         func_str = re.sub(r'\)(\()', r')*\1', func_str)
 
-        print(f"✅ Después de limpieza: '{func_str}'")
+        print(f"Despues de limpieza: '{func_str}'")
 
         x, y, z = sp.symbols('x y z', real=True)
         r, theta, rho, phi = sp.symbols('r theta rho phi', real=True, positive=True)
@@ -244,14 +228,13 @@ class IntegralApp:
 
         try:
             parsed_func = sp.sympify(func_str, locals=locals_dict)
-            print(f"✅ Función parseada: {parsed_func}")
+            print(f"Funcion parseada: {parsed_func}")
             return parsed_func
         except Exception as e:
-            print(f"❌ ERROR al parsear: {e}")
+            print(f"ERROR al parsear: {e}")
             raise ValueError(f"No se pudo parsear: {func_str}\nError: {e}")
 
     def parse_limit(self, limit_str):
-        """Parsea límites que pueden contener variables"""
         limit_str = re.sub(r'(\d+),(\d+)', r'\1.\2', limit_str)
         limit_str = limit_str.replace('π', 'pi').replace('^', '**')
         
@@ -271,11 +254,11 @@ class IntegralApp:
     def update_coordinate_labels(self, event=None):
         sistema = self.coordinate_system.get()
         if sistema == "rectangular":
-            labels = ["x mín:", "x máx:", "y mín:", "y máx:", "z mín:", "z máx:"]
-        elif sistema == "cilíndrico":
-            labels = ["r mín:", "r máx:", "θ mín:", "θ máx:", "z mín:", "z máx:"]
+            labels = ["x min:", "x max:", "y min:", "y max:", "z min:", "z max:"]
+        elif sistema == "cilindrico":
+            labels = ["r min:", "r max:", "theta min:", "theta max:", "z min:", "z max:"]
         else:
-            labels = ["ρ mín:", "ρ máx:", "θ mín:", "θ máx:", "φ mín:", "φ máx:"]
+            labels = ["rho min:", "rho max:", "theta min:", "theta max:", "phi min:", "phi max:"]
         
         for name, label in zip(self.limit_labels.keys(), labels):
             self.limit_labels[name].config(text=label)
@@ -283,61 +266,58 @@ class IntegralApp:
     def clear_results(self):
         self.result_text.config(state=tk.NORMAL)
         self.result_text.delete(1.0, tk.END)
-        self.result_text.insert(1.0, "✅ Resultados limpios. Listo para un nuevo cálculo.")
+        self.result_text.insert(1.0, "Resultados limpios. Listo para un nuevo calculo.")
         self.result_text.config(state=tk.DISABLED)
 
     def show_examples(self):
-        examples = """╔═══════════════════════════════════════════════════════════════════╗
-║                📚 EJEMPLOS DE FUNCIONES Y LÍMITES                 ║
-╚═══════════════════════════════════════════════════════════════════╝
+        examples = """Ejemplos de Funciones y Limites
 
-🔹 EJERCICIO A5 - Límites variables:
+Ejercicio A5 - Limites variables:
    Sistema: Rectangular
-   Función: x+y
-   Límites:
-     x: 0 → 2
-     y: 0 → 2-x     ← Variable
-     z: 0 → 1
+   Funcion: x+y
+   Limites:
+     x: 0 -> 2
+     y: 0 -> 2-x     <- Variable
+     z: 0 -> 1
    Resultado: 8/3 ≈ 2.666667
 
-🔹 EJERCICIO A6 - Límites variables:
+Ejercicio A6 - Limites variables:
    Sistema: Rectangular
-   Función: x*y^2*z
-   Límites:
-     x: 1 → 2
-     y: 0 → 1
-     z: 0 → x       ← Variable
+   Funcion: x*y^2*z
+   Limites:
+     x: 1 -> 2
+     y: 0 -> 1
+     z: 0 -> x       <- Variable
    Resultado: 7/6 ≈ 1.166667
 
-🔹 EJERCICIO A7 - Límites variables:
+Ejercicio A7 - Limites variables:
    Sistema: Rectangular
-   Función: x^2 + y
-   Límites:
-     x: 0 → 1
-     y: 0 → 1
-     z: x → 1       ← Límite inferior variable
+   Funcion: x^2 + y
+   Limites:
+     x: 0 -> 1
+     y: 0 -> 1
+     z: x -> 1       <- Limite inferior variable
    Resultado: 5/6 ≈ 0.833333
 
-🔹 COORDENADAS CILÍNDRICAS:
-   Función: r**2*sin(theta)
-   Límites:
-     r: 0 → 2
-     θ: 0 → pi
-     z: 0 → 3
+Coordenadas Cilindricas:
+   Funcion: r**2*sin(theta)
+   Limites:
+     r: 0 -> 2
+     theta: 0 -> pi
+     z: 0 -> 3
 
-🔹 COORDENADAS ESFÉRICAS:
-   Función: rho**2*sin(phi)
-   Límites:
-     ρ: 0 → 1
-     θ: 0 → 2*pi
-     φ: 0 → pi
+Coordenadas Esfericas:
+   Funcion: rho**2*sin(phi)
+   Limites:
+     rho: 0 -> 1
+     theta: 0 -> 2*pi
+     phi: 0 -> pi
 
-═══════════════════════════════════════════════════════════════════
-💡 TIP: Los límites pueden contener expresiones algebraicas con las
-        variables de integración anteriores.
+Tip: Los limites pueden contener expresiones algebraicas con las
+     variables de integracion anteriores.
         
-📐 Para teoremas de Green, Stokes y Divergencia, usa el botón
-   'Teoremas Vectoriales'
+Para teoremas de Green, Stokes y Divergencia, usa el boton
+'Teoremas Vectoriales'
 """
         self.result_text.config(state=tk.NORMAL)
         self.result_text.delete(1.0, tk.END)
@@ -345,10 +325,9 @@ class IntegralApp:
         self.result_text.config(state=tk.DISABLED)
 
     def calculate_integral(self):
-        """Ejecuta el cálculo con procedimiento detallado"""
         try:
             print("\n" + "="*60)
-            print("🚀 NUEVA EJECUCIÓN DE CÁLCULO")
+            print("Nueva ejecucion de calculo")
             print("="*60)
 
             importlib.reload(integral_calculator)
@@ -359,7 +338,7 @@ class IntegralApp:
 
             f = self.parse_function_complete(func_str)
 
-            if coordinate_system in ['cilindrico', 'cilíndrico']:
+            if coordinate_system in ['cilindrico', 'cilindrico']:
                 r_min = self.parse_limit(self.x_min.get())
                 r_max = self.parse_limit(self.x_max.get())
                 theta_min = self.parse_limit(self.y_min.get())
@@ -370,7 +349,7 @@ class IntegralApp:
                     f, [r_min, r_max], [theta_min, theta_max], [z_min, z_max]
                 )
 
-            elif coordinate_system in ['esferico', 'esférico']:
+            elif coordinate_system in ['esferico', 'esferico']:
                 rho_min = self.parse_limit(self.x_min.get())
                 rho_max = self.parse_limit(self.x_max.get())
                 theta_min = self.parse_limit(self.y_min.get())
@@ -392,24 +371,23 @@ class IntegralApp:
                     f, [x_min, x_max], [y_min, y_max], [z_min, z_max]
                 )
 
-            # Mostrar resultado - CON SCROLL Y DISABLED
             self.result_text.config(state=tk.NORMAL)
             self.result_text.delete(1.0, tk.END)
             self.result_text.insert(1.0, resultado["pasos"])
-            self.result_text.see(tk.END)  # Ir al final
+            self.result_text.see(tk.END)
             self.result_text.config(state=tk.DISABLED)
             
-            print("\n✅ Cálculo completado exitosamente")
+            print("\nCalculo completado exitosamente")
             
         except Exception as e:
-            error_msg = f"❌ Error en el cálculo:\n\n{str(e)}\n\n"
+            error_msg = f"Error en el calculo:\n\n{str(e)}\n\n"
             error_msg += "Verifica:\n"
-            error_msg += "• La sintaxis de la función\n"
-            error_msg += "• Los límites de integración\n"
-            error_msg += "• Que las variables en límites sean correctas"
+            error_msg += "• La sintaxis de la funcion\n"
+            error_msg += "• Los limites de integracion\n"
+            error_msg += "• Que las variables en limites sean correctas"
             
-            messagebox.showerror("Error en el cálculo", error_msg)
-            print(f"❌ ERROR: {e}")
+            messagebox.showerror("Error en el calculo", error_msg)
+            print(f"ERROR: {e}")
             import traceback
             traceback.print_exc()
 
