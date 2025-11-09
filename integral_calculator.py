@@ -1,17 +1,16 @@
 import sympy as sp
 
 class IntegralCalculator:
+    """Calculadora de integrales triples en múltiples sistemas de coordenadas"""
+    
     @staticmethod
     def _convertir_a_numerico(resultado_simbolico):
-        """
-        Convierte un resultado simbólico a numérico de manera robusta
-        """
-        # Intentar diferentes métodos de conversión
+        """Convierte resultado simbólico a numérico"""
         metodos_conversion = [
-            lambda x: float(x),  # Conversión directa a float
-            lambda x: float(sp.N(x, 15)),  # Evaluación numérica de SymPy
-            lambda x: float(x.evalf(15)),  # Método evalf de SymPy
-            lambda x: float(sp.simplify(x).evalf(15))  # Simplificar primero
+            lambda x: float(x),
+            lambda x: float(sp.N(x, 15)),
+            lambda x: float(x.evalf(15)),
+            lambda x: float(sp.simplify(x).evalf(15))
         ]
         
         for metodo in metodos_conversion:
@@ -22,18 +21,11 @@ class IntegralCalculator:
         
         return None
 
-    # =========================
-    # 🔹 RECTANGULAR CON LÍMITES VARIABLES
-    # =========================
     @staticmethod
     def integral_rectangular(f, x_lim, y_lim, z_lim):
-        """
-        Calcula integral triple con límites que pueden depender de otras variables
-        Detecta automáticamente el orden correcto de integración
-        """
+        """Calcula integral triple rectangular con límites variables"""
         x, y, z = sp.symbols('x y z', real=True)
         
-        # Detectar dependencias de variables en límites
         x_symbols = set()
         y_symbols = set()
         z_symbols = set()
@@ -45,7 +37,6 @@ class IntegralCalculator:
         for lim in z_lim:
             z_symbols.update(lim.free_symbols if hasattr(lim, 'free_symbols') else set())
         
-        # Determinar orden de integración correcto
         if z in z_symbols or y in z_symbols:
             orden = "dz dy dx"
             var_orden = [(z, z_lim, 'z'), (y, y_lim, 'y'), (x, x_lim, 'x')]
@@ -68,10 +59,8 @@ class IntegralCalculator:
                  f"   • x: [{x_lim[0]}] → [{x_lim[1]}]",
                  f"   • y: [{y_lim[0]}] → [{y_lim[1]}]",
                  f"   • z: [{z_lim[0]}] → [{z_lim[1]}]",
-                 f"\n📌 Orden de integración detectado: {orden}",
-                 f"📌 (Orden determinado por dependencias de variables)\n"]
+                 f"\n📌 Orden de integración detectado: {orden}\n"]
 
-        # Integración iterativa con orden correcto
         resultado_actual = f
         
         for i, (var, lims, nombre_var) in enumerate(var_orden, 1):
@@ -80,7 +69,6 @@ class IntegralCalculator:
             pasos.append("="*60)
             pasos.append(f"∫ ({resultado_actual}) d{nombre_var}  con {nombre_var} ∈ [{lims[0]}, {lims[1]}]")
             
-            # Integrar
             resultado_actual = sp.integrate(resultado_actual, (var, lims[0], lims[1]))
             resultado_actual = sp.simplify(resultado_actual)
             
@@ -92,8 +80,6 @@ class IntegralCalculator:
                 pasos.append(f"   Resultado final = {resultado_actual}")
 
         f3 = resultado_actual
-
-        # Convertir a numérico
         valor_numerico = IntegralCalculator._convertir_a_numerico(f3)
 
         pasos.append("\n" + "="*60)
@@ -112,16 +98,14 @@ class IntegralCalculator:
             "pasos": "\n".join(pasos)
         }
 
-    # =========================
-    # 🔹 CILÍNDRICO - CORREGIDO ✅
-    # =========================
     @staticmethod
     def integral_cylindrical(f, r_lim, theta_lim, z_lim):
-        """
-        Calcula integral triple cilíndrica con límites variables
-        CORRECCIÓN: Detecta correctamente si la función usa r,theta,z o x,y,z
-        """
-        # Definir símbolos de AMBOS sistemas
+        """Calcula integral triple cilíndrica"""
+        f = sp.sympify(f)
+        r_lim = [sp.sympify(x) for x in r_lim]
+        theta_lim = [sp.sympify(x) for x in theta_lim]
+        z_lim = [sp.sympify(x) for x in z_lim]
+        
         x, y, z_cart = sp.symbols('x y z', real=True)
         r, theta, z = sp.symbols('r theta z', real=True, positive=True)
         
@@ -129,15 +113,12 @@ class IntegralCalculator:
                  "║     INTEGRAL TRIPLE EN COORDENADAS CILÍNDRICAS              ║",
                  "╚═══════════════════════════════════════════════════════════════╝"]
         
-        # Detectar qué variables usa la función
         simbolos_func = f.free_symbols
         usa_cartesianas = any(s in simbolos_func for s in [x, y, z_cart])
-        usa_cilindricas = any(s in simbolos_func for s in [r, theta, z])
         
         f_cyl = f
         
-        if usa_cartesianas and not usa_cilindricas:
-            # Función en cartesianas → convertir
+        if usa_cartesianas:
             pasos.append(f"\n📌 Función original (cartesiana): f(x,y,z) = {f}")
             pasos.append(f"📌 Conversión a cilíndricas:")
             pasos.append(f"   x = r·cos(θ)")
@@ -152,7 +133,6 @@ class IntegralCalculator:
             f_cyl = sp.simplify(f_cyl)
             pasos.append(f"📌 Función en cilíndricas: f(r,θ,z) = {f_cyl}")
         else:
-            # Función ya en cilíndricas o constante
             pasos.append(f"\n📌 Función: f(r,θ,z) = {f}")
         
         pasos.extend([
@@ -161,10 +141,9 @@ class IntegralCalculator:
             f"   • r: [{r_lim[0]}] → [{r_lim[1]}]",
             f"   • θ: [{theta_lim[0]}] → [{theta_lim[1]}]",
             f"   • z: [{z_lim[0]}] → [{z_lim[1]}]",
-            f"\n📌 Orden de integración: dz dr dθ\n"
+            f"\n📌 Orden de integración: ∫∫∫ r dz dr dθ\n"
         ])
 
-        # Aplicar Jacobiano
         integrand = sp.simplify(f_cyl * r)
         pasos.append("="*60)
         pasos.append("PREPARACIÓN: Aplicar Jacobiano")
@@ -173,7 +152,6 @@ class IntegralCalculator:
         pasos.append(f"Jacobiano: r")
         pasos.append(f"Integrando con Jacobiano: {integrand}")
 
-        # PASO 1: Integrar respecto a z
         pasos.append("\n" + "="*60)
         pasos.append("PASO 1: Integración respecto a z")
         pasos.append("="*60)
@@ -185,7 +163,6 @@ class IntegralCalculator:
         pasos.append(f"\n🔸 Resultado después de integrar en z:")
         pasos.append(f"   f₁(r,θ) = {f1}")
 
-        # PASO 2: Integrar respecto a r
         pasos.append("\n" + "="*60)
         pasos.append("PASO 2: Integración respecto a r")
         pasos.append("="*60)
@@ -197,7 +174,6 @@ class IntegralCalculator:
         pasos.append(f"\n🔸 Resultado después de integrar en r:")
         pasos.append(f"   f₂(θ) = {f2}")
 
-        # PASO 3: Integrar respecto a theta
         pasos.append("\n" + "="*60)
         pasos.append("PASO 3: Integración respecto a θ")
         pasos.append("="*60)
@@ -209,7 +185,6 @@ class IntegralCalculator:
         pasos.append(f"\n🔸 Resultado final:")
         pasos.append(f"   {f3}")
 
-        # Convertir a numérico
         valor_numerico = IntegralCalculator._convertir_a_numerico(f3)
 
         pasos.append("\n" + "="*60)
@@ -226,16 +201,14 @@ class IntegralCalculator:
             "pasos": "\n".join(pasos)
         }
 
-    # =========================
-    # 🔹 ESFÉRICO - CORREGIDO ✅
-    # =========================
     @staticmethod
     def integral_spherical(f, rho_lim, theta_lim, phi_lim):
-        """
-        Calcula integral triple esférica con límites variables
-        CORRECCIÓN: Detecta correctamente si la función usa rho,theta,phi o x,y,z
-        """
-        # Definir símbolos de AMBOS sistemas
+        """Calcula integral triple esférica"""
+        f = sp.sympify(f)
+        rho_lim = [sp.sympify(x) for x in rho_lim]
+        theta_lim = [sp.sympify(x) for x in theta_lim]
+        phi_lim = [sp.sympify(x) for x in phi_lim]
+        
         x, y, z_cart = sp.symbols('x y z', real=True)
         rho, theta, phi = sp.symbols('rho theta phi', real=True, positive=True)
         
@@ -243,15 +216,12 @@ class IntegralCalculator:
                  "║     INTEGRAL TRIPLE EN COORDENADAS ESFÉRICAS                ║",
                  "╚═══════════════════════════════════════════════════════════════╝"]
         
-        # Detectar qué variables usa la función
         simbolos_func = f.free_symbols
         usa_cartesianas = any(s in simbolos_func for s in [x, y, z_cart])
-        usa_esfericas = any(s in simbolos_func for s in [rho, theta, phi])
         
         f_sph = f
         
-        if usa_cartesianas and not usa_esfericas:
-            # Función en cartesianas → convertir
+        if usa_cartesianas:
             pasos.append(f"\n📌 Función original (cartesiana): f(x,y,z) = {f}")
             pasos.append(f"📌 Conversión a esféricas:")
             pasos.append(f"   x = ρ·sin(φ)·cos(θ)")
@@ -266,7 +236,6 @@ class IntegralCalculator:
             f_sph = sp.simplify(f_sph)
             pasos.append(f"📌 Función en esféricas: f(ρ,θ,φ) = {f_sph}")
         else:
-            # Función ya en esféricas o constante
             pasos.append(f"\n📌 Función: f(ρ,θ,φ) = {f}")
         
         pasos.extend([
@@ -275,10 +244,9 @@ class IntegralCalculator:
             f"   • ρ: [{rho_lim[0]}] → [{rho_lim[1]}]",
             f"   • θ: [{theta_lim[0]}] → [{theta_lim[1]}]",
             f"   • φ: [{phi_lim[0]}] → [{phi_lim[1]}]",
-            f"\n📌 Orden de integración: dρ dθ dφ\n"
+            f"\n📌 Orden de integración: ∫∫∫ ρ²sin(φ) dρ dθ dφ\n"
         ])
 
-        # Aplicar Jacobiano
         integrand = sp.simplify(f_sph * rho**2 * sp.sin(phi))
         pasos.append("="*60)
         pasos.append("PREPARACIÓN: Aplicar Jacobiano")
@@ -287,7 +255,6 @@ class IntegralCalculator:
         pasos.append(f"Jacobiano: ρ²·sin(φ)")
         pasos.append(f"Integrando con Jacobiano: {integrand}")
 
-        # PASO 1: Integrar respecto a rho
         pasos.append("\n" + "="*60)
         pasos.append("PASO 1: Integración respecto a ρ")
         pasos.append("="*60)
@@ -299,7 +266,6 @@ class IntegralCalculator:
         pasos.append(f"\n🔸 Resultado después de integrar en ρ:")
         pasos.append(f"   f₁(θ,φ) = {f1}")
 
-        # PASO 2: Integrar respecto a theta
         pasos.append("\n" + "="*60)
         pasos.append("PASO 2: Integración respecto a θ")
         pasos.append("="*60)
@@ -311,7 +277,6 @@ class IntegralCalculator:
         pasos.append(f"\n🔸 Resultado después de integrar en θ:")
         pasos.append(f"   f₂(φ) = {f2}")
 
-        # PASO 3: Integrar respecto a phi
         pasos.append("\n" + "="*60)
         pasos.append("PASO 3: Integración respecto a φ")
         pasos.append("="*60)
@@ -323,7 +288,6 @@ class IntegralCalculator:
         pasos.append(f"\n🔸 Resultado final:")
         pasos.append(f"   {f3}")
 
-        # Convertir a numérico
         valor_numerico = IntegralCalculator._convertir_a_numerico(f3)
 
         pasos.append("\n" + "="*60)
@@ -341,47 +305,5 @@ class IntegralCalculator:
         }
 
 
-# =========================
-# PRUEBAS Y VERIFICACIÓN
-# =========================
 if __name__ == "__main__":
-    print("\n" + "="*70)
-    print("VERIFICACIÓN DE TODOS LOS SISTEMAS")
-    print("="*70)
-    
-    x, y, z = sp.symbols('x y z', real=True)
-    r, theta = sp.symbols('r theta', real=True, positive=True)
-    rho, phi = sp.symbols('rho phi', real=True, positive=True)
-    
-    # ========== PRUEBA CILÍNDRICAS ==========
-    print("\n" + "🔷"*35)
-    print("PRUEBA CILÍNDRICAS: ∫∫∫ r² dV")
-    print("Límites: r∈[0,2], θ∈[0,π/2], z∈[0,4-r]")
-    print("🔷"*35)
-    
-    f_cil = r**2
-    resultado_cil = IntegralCalculator.integral_cylindrical(
-        f_cil,
-        [0, 2],        # r: 0 → 2
-        [0, sp.pi/2],  # θ: 0 → π/2
-        [0, 4-r]       # z: 0 → 4-r
-    )
-    print(resultado_cil["pasos"])
-    print(f"\n🔍 Resultado: {resultado_cil['resultado_simbolico']} = {resultado_cil['resultado_manual']}")
-    
-    # ========== PRUEBA ESFÉRICAS ==========
-    print("\n" + "🔷"*35)
-    print("PRUEBA ESFÉRICAS: Volumen de esfera unitaria")
-    print("Límites: ρ∈[0,1], θ∈[0,2π], φ∈[0,π]")
-    print("🔷"*35)
-    
-    f_esf = 1
-    resultado_esf = IntegralCalculator.integral_spherical(
-        f_esf,
-        [0, 1],
-        [0, 2*sp.pi],
-        [0, sp.pi]
-    )
-    print(resultado_esf["pasos"])
-    print(f"\n✅ Esperado: 4π/3 ≈ 4.18879")
-    print(f"🔍 Obtenido: {resultado_esf['resultado_simbolico']} = {resultado_esf['resultado_manual']}")
+    print("Módulo integral_calculator cargado correctamente")
