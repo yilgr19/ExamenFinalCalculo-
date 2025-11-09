@@ -13,7 +13,7 @@ class IntegralApp:
     def __init__(self, root):
         self.root = root
         self.root.title("🧮 Calculadora de Integrales Triples")
-        self.root.geometry("750x900")
+        self.root.geometry("800x1000")
 
         # Variables de control
         self.coordinate_system = tk.StringVar(value="rectangular")
@@ -93,7 +93,7 @@ class IntegralApp:
             self.limit_labels[name].grid(row=r, column=c, sticky=tk.E, padx=5, pady=5)
             self.limit_entries[name].grid(row=r, column=c+1, sticky=(tk.W, tk.E), padx=5, pady=5)
 
-        # Botones - MODIFICADO: Agregado botón de Teoremas Vectoriales
+        # Botones
         button_frame = ttk.Frame(main_frame)
         button_frame.grid(row=5, column=0, columnspan=2, pady=15)
         
@@ -104,17 +104,16 @@ class IntegralApp:
         ttk.Button(button_frame, text="📚 Ejemplos", 
                   command=self.show_examples).pack(side=tk.LEFT, padx=5)
         
-        # ✨ NUEVO BOTÓN: Teoremas Vectoriales
         ttk.Button(button_frame, text="📐 Teoremas Vectoriales", 
                   command=self.open_vector_theorems, 
                   style="Accent.TButton").pack(side=tk.LEFT, padx=5)
 
-        # Resultado
+        # Resultado - CON STATE=DISABLED
         result_frame = ttk.LabelFrame(main_frame, text="Resultado Detallado", padding="5")
         result_frame.grid(row=6, column=0, columnspan=2, pady=10, sticky='nsew')
         
         self.result_text = tk.Text(result_frame, height=24, width=85, wrap=tk.WORD,
-                                   font=("Consolas", 9), bg="#f5f5f5")
+                                   font=("Consolas", 9), bg="#f5f5f5", state=tk.DISABLED)
         scrollbar = ttk.Scrollbar(result_frame, orient="vertical", command=self.result_text.yview)
         self.result_text.configure(yscrollcommand=scrollbar.set)
         self.result_text.grid(row=0, column=0, sticky='nsew')
@@ -130,6 +129,7 @@ class IntegralApp:
         style.configure("Accent.TButton", foreground="blue", font=("Arial", 9, "bold"))
 
         self.update_coordinate_labels()
+        self.result_text.config(state=tk.NORMAL)
         self.result_text.insert(1.0, """╔══════════════════════════════════════════════════════════════════╗
 ║     👋 CALCULADORA DE INTEGRALES TRIPLES - VERSIÓN MEJORADA      ║
 ╚══════════════════════════════════════════════════════════════════╝
@@ -165,27 +165,23 @@ class IntegralApp:
 📚 Presiona 'Ejemplos' para ver más casos de uso
 📐 Presiona 'Teoremas Vectoriales' para Green, Stokes y Divergencia
 """)
+        self.result_text.config(state=tk.DISABLED)
 
-    # ✨ NUEVO MÉTODO: Abrir ventana de Teoremas Vectoriales
     def open_vector_theorems(self):
         """Abre una nueva ventana con la calculadora de teoremas vectoriales"""
         try:
-            # Crear nueva ventana independiente
             nueva_ventana = tk.Toplevel(self.root)
             nueva_ventana.title("🧮 Teoremas Vectoriales")
             nueva_ventana.geometry("800x950")
             
-            # Importar y crear la aplicación
             import gui_vector_theorems
-            importlib.reload(gui_vector_theorems)  # Recargar por si hay cambios
+            importlib.reload(gui_vector_theorems)
             
-            # Crear instancia de la app en la nueva ventana
             gui_vector_theorems.VectorTheoremsApp(nueva_ventana)
             
-            # Centrar la ventana
             nueva_ventana.update_idletasks()
-            x = (nueva_ventana.winfo_screenwidth() // 2) - (400)  # 800/2 = 400
-            y = (nueva_ventana.winfo_screenheight() // 2) - (475)  # 950/2 = 475
+            x = (nueva_ventana.winfo_screenwidth() // 2) - (400)
+            y = (nueva_ventana.winfo_screenheight() // 2) - (475)
             nueva_ventana.geometry(f"+{x}+{y}")
             
         except ImportError as e:
@@ -208,35 +204,30 @@ class IntegralApp:
                 f"Ocurrió un error al abrir Teoremas Vectoriales:\n\n{str(e)}"
             )
             import traceback
-            traceback.print_exc()  # Para debugging
+            traceback.print_exc()
 
     def parse_function_complete(self, func_str):
         """Parser matemático completo"""
         print("="*60)
         print(f"📝 Parseando función: '{func_str}'")
 
-        # Normalizar decimales
         func_str = re.sub(r'(\d+),(\d+)', r'\1.\2', func_str)
         
-        # Reemplazar símbolos matemáticos
         func_str = func_str.replace('^', '**').replace('√', 'sqrt').replace('π', 'pi')
         func_str = func_str.replace('×', '*').replace('÷', '/')
 
-        # Reescribir sin**2(x) → (sin(x))**2
         func_str = re.sub(
             r'(sin|cos|tan|sec|csc|cot)\*\*\s*(\d+)\s*\(\s*([a-zA-Z0-9_+\-*/^ ]+)\s*\)',
             r'(\1(\3))**\2', 
             func_str
         )
 
-        # Multiplicaciones implícitas
         func_str = re.sub(r'(\d)([a-zA-Z(])', r'\1*\2', func_str)
         func_str = re.sub(r'([a-zA-Z)])(\d)', r'\1*\2', func_str)
         func_str = re.sub(r'\)(\()', r')*\1', func_str)
 
         print(f"✅ Después de limpieza: '{func_str}'")
 
-        # Símbolos
         x, y, z = sp.symbols('x y z', real=True)
         r, theta, rho, phi = sp.symbols('r theta rho phi', real=True, positive=True)
         
@@ -261,11 +252,9 @@ class IntegralApp:
 
     def parse_limit(self, limit_str):
         """Parsea límites que pueden contener variables"""
-        # Normalizar decimales
         limit_str = re.sub(r'(\d+),(\d+)', r'\1.\2', limit_str)
         limit_str = limit_str.replace('π', 'pi').replace('^', '**')
         
-        # Símbolos permitidos en límites
         x, y, z = sp.symbols('x y z', real=True)
         r, theta, rho, phi = sp.symbols('r theta rho phi', real=True, positive=True)
         
@@ -292,8 +281,10 @@ class IntegralApp:
             self.limit_labels[name].config(text=label)
 
     def clear_results(self):
+        self.result_text.config(state=tk.NORMAL)
         self.result_text.delete(1.0, tk.END)
         self.result_text.insert(1.0, "✅ Resultados limpios. Listo para un nuevo cálculo.")
+        self.result_text.config(state=tk.DISABLED)
 
     def show_examples(self):
         examples = """╔═══════════════════════════════════════════════════════════════════╗
@@ -348,8 +339,10 @@ class IntegralApp:
 📐 Para teoremas de Green, Stokes y Divergencia, usa el botón
    'Teoremas Vectoriales'
 """
+        self.result_text.config(state=tk.NORMAL)
         self.result_text.delete(1.0, tk.END)
         self.result_text.insert(1.0, examples)
+        self.result_text.config(state=tk.DISABLED)
 
     def calculate_integral(self):
         """Ejecuta el cálculo con procedimiento detallado"""
@@ -358,14 +351,12 @@ class IntegralApp:
             print("🚀 NUEVA EJECUCIÓN DE CÁLCULO")
             print("="*60)
 
-            # Recargar módulo
             importlib.reload(integral_calculator)
             IntegralCalculator = integral_calculator.IntegralCalculator
 
             coordinate_system = self.coordinate_system.get().lower()
             func_str = self.function_var.get()
 
-            # Parsear función
             f = self.parse_function_complete(func_str)
 
             if coordinate_system in ['cilindrico', 'cilíndrico']:
@@ -390,7 +381,7 @@ class IntegralApp:
                     f, [rho_min, rho_max], [theta_min, theta_max], [phi_min, phi_max]
                 )
 
-            else:  # Rectangular
+            else:
                 x_min = self.parse_limit(self.x_min.get())
                 x_max = self.parse_limit(self.x_max.get())
                 y_min = self.parse_limit(self.y_min.get())
@@ -401,9 +392,12 @@ class IntegralApp:
                     f, [x_min, x_max], [y_min, y_max], [z_min, z_max]
                 )
 
-            # Mostrar resultado
+            # Mostrar resultado - CON SCROLL Y DISABLED
+            self.result_text.config(state=tk.NORMAL)
             self.result_text.delete(1.0, tk.END)
             self.result_text.insert(1.0, resultado["pasos"])
+            self.result_text.see(tk.END)  # Ir al final
+            self.result_text.config(state=tk.DISABLED)
             
             print("\n✅ Cálculo completado exitosamente")
             

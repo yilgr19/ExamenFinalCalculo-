@@ -7,7 +7,6 @@ import sympy as sp
 import importlib
 import re
 
-# Verificar importación del módulo de cálculo
 try:
     import vector_theorems
     MODULO_DISPONIBLE = True
@@ -26,13 +25,12 @@ class VectorTheoremsApp:
             
         self.root.title("🧮 Teoremas Vectoriales")
         
-        # Verificar disponibilidad del módulo
         if not MODULO_DISPONIBLE:
             self.mostrar_error_inicial()
             return
         
         try:
-            self.root.geometry("800x950")
+            self.root.geometry("850x1050")
         except:
             pass
         
@@ -121,12 +119,12 @@ class VectorTheoremsApp:
         ttk.Button(button_frame, text="📚 Ejemplos",
                   command=self.show_examples).pack(side=tk.LEFT, padx=5)
         
-        # Resultado
+        # Resultado - CON STATE=DISABLED
         result_frame = ttk.LabelFrame(main_frame, text="Resultado Detallado", padding="5")
         result_frame.grid(row=4, column=0, columnspan=2, pady=10, sticky='nsew')
         
         self.result_text = tk.Text(result_frame, height=20, width=90, wrap=tk.WORD,
-                                   font=("Consolas", 9), bg="#f5f5f5")
+                                   font=("Consolas", 9), bg="#f5f5f5", state=tk.DISABLED)
         scrollbar = ttk.Scrollbar(result_frame, orient="vertical", command=self.result_text.yview)
         self.result_text.configure(yscrollcommand=scrollbar.set)
         self.result_text.grid(row=0, column=0, sticky='nsew')
@@ -328,8 +326,11 @@ class VectorTheoremsApp:
             }
         
         resultado = VectorTheorems.green_theorem(P, Q, bounds, tipo)
+        self.result_text.config(state=tk.NORMAL)
         self.result_text.delete(1.0, tk.END)
         self.result_text.insert(1.0, resultado["pasos"])
+        self.result_text.see(tk.END)
+        self.result_text.config(state=tk.DISABLED)
     
     def calculate_stokes(self, VectorTheorems):
         """Calcular Stokes"""
@@ -349,8 +350,11 @@ class VectorTheoremsApp:
         }
         
         resultado = VectorTheorems.stokes_theorem([Fx, Fy, Fz], [x_param, y_param, z_param], bounds)
+        self.result_text.config(state=tk.NORMAL)
         self.result_text.delete(1.0, tk.END)
         self.result_text.insert(1.0, resultado["pasos"])
+        self.result_text.see(tk.END)
+        self.result_text.config(state=tk.DISABLED)
     
     def calculate_divergence(self, VectorTheorems):
         """Calcular Divergencia"""
@@ -388,13 +392,18 @@ class VectorTheoremsApp:
             }
         
         resultado = VectorTheorems.divergence_theorem([Fx, Fy, Fz], tipo, bounds)
+        self.result_text.config(state=tk.NORMAL)
         self.result_text.delete(1.0, tk.END)
         self.result_text.insert(1.0, resultado["pasos"])
+        self.result_text.see(tk.END)
+        self.result_text.config(state=tk.DISABLED)
     
     def clear_results(self):
         """Limpiar"""
+        self.result_text.config(state=tk.NORMAL)
         self.result_text.delete(1.0, tk.END)
         self.show_welcome_message()
+        self.result_text.config(state=tk.DISABLED)
     
     def show_welcome_message(self):
         """Bienvenida"""
@@ -416,7 +425,9 @@ class VectorTheoremsApp:
 📚 Presiona 'Ejemplos' para ver casos de uso
 🧮 Selecciona un teorema y presiona 'Calcular'
 """
+        self.result_text.config(state=tk.NORMAL)
         self.result_text.insert(1.0, mensaje)
+        self.result_text.config(state=tk.DISABLED)
     
     def show_examples(self):
         """Ejemplos"""
@@ -440,11 +451,12 @@ class VectorTheoremsApp:
    Cubo [0,1]³
    Resultado: 3
 """
+        self.result_text.config(state=tk.NORMAL)
         self.result_text.delete(1.0, tk.END)
         self.result_text.insert(1.0, examples)
+        self.result_text.config(state=tk.DISABLED)
 
 
-# Prueba independiente
 if __name__ == "__main__":
     root = tk.Tk()
     app = VectorTheoremsApp(root)

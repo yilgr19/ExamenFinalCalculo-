@@ -349,23 +349,57 @@ class VectorTheorems:
             
             pasos.append(f"Integrando con Jacobiano: {integrand}")
             
-            # Integrar
+            # Integrar - CORRECCIÓN: orden correcto phi, theta, rho
             rho_lim = bounds['rho']
             theta_lim = bounds['theta']
             phi_lim = bounds['phi']
             
-            pasos.append(f"\nIntegración respecto a ρ ∈ [{rho_lim[0]}, {rho_lim[1]}]:")
-            resultado = sp.integrate(integrand, (rho, rho_lim[0], rho_lim[1]))
-            resultado = sp.simplify(resultado)
-            pasos.append(f"Resultado: {resultado}")
+            pasos.append(f"\nIntegración respecto a φ ∈ [{phi_lim[0]}, {phi_lim[1]}]:")
+            try:
+                # Expandir el integrando antes de integrar
+                integrand_expandido = sp.expand(integrand)
+                resultado = sp.integrate(integrand_expandido, (phi, phi_lim[0], phi_lim[1]))
+                resultado = sp.simplify(resultado)
+                pasos.append(f"Resultado: {resultado}")
+            except Exception as e:
+                pasos.append(f"Error en integración de φ: {e}")
+                # Intentar evaluar numéricamente
+                try:
+                    resultado = sp.integrate(integrand, (phi, phi_lim[0], phi_lim[1]))
+                    resultado = resultado.evalf()
+                    pasos.append(f"Resultado (numérico): {resultado}")
+                except:
+                    resultado = integrand
             
             pasos.append(f"\nIntegración respecto a θ ∈ [{theta_lim[0]}, {theta_lim[1]}]:")
-            resultado = sp.integrate(resultado, (theta, theta_lim[0], theta_lim[1]))
-            resultado = sp.simplify(resultado)
-            pasos.append(f"Resultado: {resultado}")
+            try:
+                resultado_expandido = sp.expand(resultado)
+                resultado = sp.integrate(resultado_expandido, (theta, theta_lim[0], theta_lim[1]))
+                resultado = sp.simplify(resultado)
+                pasos.append(f"Resultado: {resultado}")
+            except Exception as e:
+                pasos.append(f"Error en integración de θ: {e}")
+                try:
+                    resultado = sp.integrate(resultado, (theta, theta_lim[0], theta_lim[1]))
+                    resultado = resultado.evalf()
+                    pasos.append(f"Resultado (numérico): {resultado}")
+                except:
+                    pass
             
-            pasos.append(f"\nIntegración respecto a φ ∈ [{phi_lim[0]}, {phi_lim[1]}]:")
-            resultado_final = sp.integrate(resultado, (phi, phi_lim[0], phi_lim[1]))
+            pasos.append(f"\nIntegración respecto a ρ ∈ [{rho_lim[0]}, {rho_lim[1]}]:")
+            try:
+                resultado_expandido = sp.expand(resultado)
+                resultado_final = sp.integrate(resultado_expandido, (rho, rho_lim[0], rho_lim[1]))
+                resultado_final = sp.simplify(resultado_final)
+                pasos.append(f"Resultado: {resultado_final}")
+            except Exception as e:
+                pasos.append(f"Error en integración de ρ: {e}")
+                try:
+                    resultado_final = sp.integrate(resultado, (rho, rho_lim[0], rho_lim[1]))
+                    resultado_final = resultado_final.evalf()
+                    pasos.append(f"Resultado (numérico): {resultado_final}")
+                except:
+                    resultado_final = resultado
             
         elif region_type == "cylindrical":
             pasos.extend([
@@ -395,13 +429,13 @@ class VectorTheorems:
             resultado = sp.simplify(resultado)
             pasos.append(f"Resultado: {resultado}")
             
-            pasos.append(f"\nIntegración respecto a r ∈ [{r_lim[0]}, {r_lim[1]}]:")
-            resultado = sp.integrate(resultado, (r, r_lim[0], r_lim[1]))
+            pasos.append(f"\nIntegración respecto a θ ∈ [{theta_lim[0]}, {theta_lim[1]}]:")
+            resultado = sp.integrate(resultado, (theta, theta_lim[0], theta_lim[1]))
             resultado = sp.simplify(resultado)
             pasos.append(f"Resultado: {resultado}")
             
-            pasos.append(f"\nIntegración respecto a θ ∈ [{theta_lim[0]}, {theta_lim[1]}]:")
-            resultado_final = sp.integrate(resultado, (theta, theta_lim[0], theta_lim[1]))
+            pasos.append(f"\nIntegración respecto a r ∈ [{r_lim[0]}, {r_lim[1]}]:")
+            resultado_final = sp.integrate(resultado, (r, r_lim[0], r_lim[1]))
             
         else:  # rectangular
             pasos.extend([
