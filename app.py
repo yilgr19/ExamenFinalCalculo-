@@ -1,14 +1,12 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import sympy as sp
-import importlib
 import sys
 import re
+import importlib
 
-# FORZAR RECARGA DEL MÓDULO
-if 'integral_calculator' in sys.modules:
-    importlib.reload(sys.modules['integral_calculator'])
-from integral_calculator import IntegralCalculator
+# Importar el módulo
+import integral_calculator
 
 class IntegralApp:
     def __init__(self, root):
@@ -57,7 +55,7 @@ class IntegralApp:
         help_frame = ttk.Frame(main_frame)
         help_frame.grid(row=3, column=0, columnspan=2, pady=5, sticky=tk.W)
         
-        help_text = "💡 Sintaxis: x*y, x^2, sin(x), cos(y), exp(z), log(x), sqrt(x), pi, e"
+        help_text = "💡 Sintaxis: x*y, x^2, sin(x), cos(y), exp(z), sqrt(x), pi, e | Decimales: 0.5 o 0,5"
         help_label = ttk.Label(help_frame, text=help_text, font=("Arial", 8), foreground="gray")
         help_label.pack()
 
@@ -139,23 +137,29 @@ class IntegralApp:
         # Mensaje inicial
         self.result_text.insert(1.0, "👋 Bienvenido a la Calculadora de Integrales Triples\n\n"
                                     "Ingresa una función y límites, luego presiona 'Calcular Integral'.\n"
-                                    "Usa el botón 'Ejemplos' para ver funciones de prueba.")
+                                    "Usa el botón 'Ejemplos' para ver funciones de prueba.\n\n"
+                                    "🔄 AUTO-RELOAD ACTIVADO: Los cambios en integral_calculator.py\n"
+                                    "   se cargarán automáticamente en cada cálculo.")
 
     def parse_function_complete(self, func_str):
         """
         Parser matemático completo mejorado
-        Soporta: trigonometría, exponenciales, logaritmos, raíces, etc.
+        Soporta: trigonometría, exponenciales, logaritmos, raíces, decimales con coma
         """
         print("=" * 60)
         print(f"📝 Parseando función: '{func_str}'")
         
+        # 0. CRÍTICO: Convertir comas decimales a puntos
+        func_str = re.sub(r'(\d+),(\d+)', r'\1.\2', func_str)
+        print(f"   Después de convertir comas: '{func_str}'")
+        
         # 1. Reemplazos de símbolos especiales
         replacements = {
-            '^': '**',           # Potencias
-            '√': 'sqrt',         # Raíz cuadrada
-            'π': 'pi',           # Pi
-            '×': '*',            # Multiplicación alternativa
-            '÷': '/',            # División alternativa
+            '^': '**',
+            '√': 'sqrt',
+            'π': 'pi',
+            '×': '*',
+            '÷': '/',
         }
         
         for old, new in replacements.items():
@@ -164,11 +168,11 @@ class IntegralApp:
         print(f"   Después de reemplazos: '{func_str}'")
         
         # 2. Agregar multiplicación implícita
-        func_str = re.sub(r'(\d)([a-zA-Z(])', r'\1*\2', func_str)  # 2x, 2(
-        func_str = re.sub(r'([a-zA-Z)])(\d)', r'\1*\2', func_str)  # x2, )2
-        func_str = re.sub(r'\)(\()', r')*\1', func_str)            # )(
-        func_str = re.sub(r'([a-zA-Z0-9)])(\()', r'\1*\2', func_str)  # x(, 2(
-        func_str = re.sub(r'\)([a-zA-Z])', r')*\1', func_str)      # )x
+        func_str = re.sub(r'(\d)([a-zA-Z(])', r'\1*\2', func_str)
+        func_str = re.sub(r'([a-zA-Z)])(\d)', r'\1*\2', func_str)
+        func_str = re.sub(r'\)(\()', r')*\1', func_str)
+        func_str = re.sub(r'([a-zA-Z0-9)])(\()', r'\1*\2', func_str)
+        func_str = re.sub(r'\)([a-zA-Z])', r')*\1', func_str)
         
         print(f"   Después de multiplicación implícita: '{func_str}'")
         
@@ -176,54 +180,23 @@ class IntegralApp:
         x, y, z = sp.symbols('x y z', real=True)
         r, theta, rho, phi = sp.symbols('r theta rho phi', real=True, positive=True)
         
-        # 4. Diccionario completo de funciones y constantes
+        # 4. Diccionario completo
         locals_dict = {
-            # Variables
             'x': x, 'y': y, 'z': z,
             'r': r, 'theta': theta, 'rho': rho, 'phi': phi,
-            
-            # Constantes
-            'pi': sp.pi,
-            'e': sp.E,
-            'E': sp.E,
-            
-            # Funciones trigonométricas
-            'sin': sp.sin,
-            'cos': sp.cos,
-            'tan': sp.tan,
-            'sec': sp.sec,
-            'csc': sp.csc,
-            'cot': sp.cot,
-            
-            # Funciones trigonométricas inversas
-            'asin': sp.asin,
-            'acos': sp.acos,
-            'atan': sp.atan,
-            'asec': sp.asec,
-            'acsc': sp.acsc,
-            'acot': sp.acot,
-            
-            # Funciones hiperbólicas
-            'sinh': sp.sinh,
-            'cosh': sp.cosh,
-            'tanh': sp.tanh,
-            
-            # Exponenciales y logaritmos
-            'exp': sp.exp,
-            'log': sp.log,    # logaritmo natural (ln)
-            'ln': sp.log,     # logaritmo natural
-            
-            # Raíces y potencias
+            'pi': sp.pi, 'e': sp.E, 'E': sp.E,
+            'sin': sp.sin, 'cos': sp.cos, 'tan': sp.tan,
+            'sec': sp.sec, 'csc': sp.csc, 'cot': sp.cot,
+            'asin': sp.asin, 'acos': sp.acos, 'atan': sp.atan,
+            'asec': sp.asec, 'acsc': sp.acsc, 'acot': sp.acot,
+            'sinh': sp.sinh, 'cosh': sp.cosh, 'tanh': sp.tanh,
+            'exp': sp.exp, 'log': sp.log, 'ln': sp.log,
             'sqrt': sp.sqrt,
-            'cbrt': lambda x: x**(sp.Rational(1, 3)),  # raíz cúbica
-            
-            # Valor absoluto
-            'abs': sp.Abs,
-            'Abs': sp.Abs,
+            'cbrt': lambda x: x**(sp.Rational(1, 3)),
+            'abs': sp.Abs, 'Abs': sp.Abs,
         }
         
         try:
-            # 5. Convertir a expresión SymPy
             parsed_func = sp.sympify(func_str, locals=locals_dict)
             print(f"✅ Función parseada: {parsed_func}")
             print(f"   Tipo: {type(parsed_func)}")
@@ -236,7 +209,8 @@ class IntegralApp:
             raise ValueError(f"No se pudo parsear la función: {func_str}\nError: {e}")
 
     def parse_limit(self, limit_str):
-        """Parsear límites de integración"""
+        """Parsear límites de integración (soporta decimales con coma)"""
+        limit_str = re.sub(r'(\d+),(\d+)', r'\1.\2', limit_str)
         limit_str = limit_str.replace('π', 'pi').replace('^', '**')
         return sp.sympify(limit_str, locals={'pi': sp.pi, 'e': sp.E})
 
@@ -269,53 +243,45 @@ class IntegralApp:
 
 🔹 BÁSICAS:
    • x*y*z                    → Producto simple
-   • x^2 + y^2 + z^2          → Suma de cuadrados
+   • x^2 + y^2 + z^2          → Suma de cuadrados (Ejercicio A4)
    • 2*x*y + 3*z              → Combinación lineal
+   • 0.5*x + 0.3*y            → Con decimales (punto o coma)
+   • 0,1*x*0,2*y*0,3*z        → Decimales con coma europea
 
 🔹 TRIGONOMÉTRICAS:
    • sin(x)*cos(y)            → Producto de seno y coseno
    • sin(pi*x)*sin(pi*y)      → Con constante pi
-   • cos(x)^2 + sin(x)^2      → Identidad trigonométrica
 
 🔹 EXPONENCIALES:
    • exp(x + y + z)           → Exponencial de suma
    • e^(x*y)                  → Exponencial de producto
-   • exp(-x^2 - y^2)          → Gaussiana 2D
 
-🔹 LOGARITMOS:
-   • log(x + 1)               → Logaritmo natural
-   • ln(x*y + 1)              → Logaritmo de producto
+🔹 COORDENADAS CILÍNDRICAS:
+   • r                        → Radio (jacobiano: r)
+   • r^2                      → Radio al cuadrado
+   • r*cos(theta)             → Componente x
 
-🔹 RAÍCES:
-   • sqrt(x^2 + y^2)          → Raíz cuadrada
-   • sqrt(1 - x^2)            → Raíz con resta
+🔹 COORDENADAS ESFÉRICAS:
+   • rho^2                    → Radio esférico al cuadrado
+   • 1                        → Constante (volumen)
 
-🔹 RACIONALES:
-   • 1/(1 + x^2)              → Función racional simple
-   • x/(1 + y^2 + z^2)        → Racional con múltiples variables
-
-🔹 COMPLEJAS:
-   • exp(-x^2)*sin(pi*y)      → Exponencial con trigonométrica
-   • sqrt(x^2 + y^2)*cos(z)   → Raíz con coseno
-   • x*sin(y)/sqrt(1 + z^2)   → Combinación múltiple
+🔹 EJERCICIO A4 (Límites variables):
+   Función: x^2 + y^2 + z^2
+   x: 0 → 1
+   y: 0 → x    (¡límite variable!)
+   z: 0 → y    (¡límite variable!)
+   Resultado esperado: 1/6 ≈ 0.166667
 
 ═══════════════════════════════════════════════════════════════════
 💡 SINTAXIS DISPONIBLE:
 
    Operadores:  +  -  *  /  ^  **
    Constantes:  pi  e
+   Decimales:   0.5  o  0,5  (ambos formatos válidos)
    Trig:        sin  cos  tan  sec  csc  cot
-   Trig inv:    asin  acos  atan
-   Hiperbólica: sinh  cosh  tanh
    Otras:       exp  log  ln  sqrt  abs
 
-💡 TIP: Usa paréntesis para agrupar: sin(x*y) ≠ sin(x)*y
 ═══════════════════════════════════════════════════════════════════
-
-🎯 EJERCICIO DE PRUEBA:
-   Función: x*y*z
-   Límites: x[0,1], y[0,1], z[0,1]
-   Resultado esperado: 0.125 (1/8)
 """
         self.result_text.delete(1.0, tk.END)
         self.result_text.insert(1.0, examples)
@@ -327,7 +293,14 @@ class IntegralApp:
             print("🚀 NUEVA EJECUCIÓN DE CÁLCULO")
             print("="*60)
 
-            # Obtener sistema de coordenadas
+            # 🔄 RECARGAR EL MÓDULO AUTOMÁTICAMENTE
+            print("🔄 Recargando módulo integral_calculator...")
+            importlib.reload(integral_calculator)
+            print("✅ Módulo recargado exitosamente")
+            
+            # Usar la clase recargada
+            IntegralCalculator = integral_calculator.IntegralCalculator
+
             coordinate_system = self.coordinate_system.get().lower()
             func_str = self.function_var.get()
 
@@ -338,10 +311,8 @@ class IntegralApp:
 
             print(f"🎯 Sistema: {coordinate_system}")
 
-            # Parsear función con el parser mejorado
             f = self.parse_function_complete(func_str)
 
-            # Calcular según sistema
             if coordinate_system == 'rectangular':
                 x_min = self.parse_limit(self.x_min.get())
                 x_max = self.parse_limit(self.x_max.get())
@@ -389,16 +360,16 @@ class IntegralApp:
             else:
                 raise ValueError("Sistema de coordenadas no válido")
 
-            # Formatear resultados
             print(f"\n📈 Resultados obtenidos")
+            print(f"   Debug - resultado completo: {resultado}")
+            print(f"   Debug - resultado_simbolico: {resultado.get('resultado_simbolico')}")
+            print(f"   Debug - resultado_manual: {resultado.get('resultado_manual')}")
 
             def formatear_numero(valor):
                 if valor is None:
                     return "❌ None (No se pudo calcular numéricamente)"
                 try:
-                    # Intentar mostrar más precisión
                     num_str = f"{valor:.12f}"
-                    # Eliminar ceros innecesarios
                     num_str = num_str.rstrip('0').rstrip('.')
                     return num_str
                 except:
@@ -410,32 +381,29 @@ class IntegralApp:
             pasos = resultado.get('pasos', "Sin pasos")
 
             # Crear resultado formateado
-            resultado_final = f"""{'='*70}
-                    PROCEDIMIENTO PASO A PASO
-{'='*70}
+            resultado_final = f"""{pasos}
 
-{pasos}
-
-{'='*70}
-                   LÍMITES DE INTEGRACIÓN
-{'='*70}
+╔═══════════════════════════════════════════════════════════════╗
+║                  LÍMITES DE INTEGRACIÓN                       ║
+╚═══════════════════════════════════════════════════════════════╝
 {labels[0]}: {self.x_min.get()} → {self.x_max.get()}
 {labels[1]}: {self.y_min.get()} → {self.y_max.get()}
 {labels[2]}: {self.z_min.get()} → {self.z_max.get()}
 
-{'='*70}
-                      RESULTADO FINAL
-{'='*70}
+╔═══════════════════════════════════════════════════════════════╗
+║                     RESULTADO FINAL                           ║
+╚═══════════════════════════════════════════════════════════════╝
+
 ✅ Valor numérico: {resultado_manual}
 📝 Expresión simbólica: {resultado_simbolico}
 🔢 Valor evaluado: {resultado_simbolico_evaluado}
 
-Notación integral:
-∫∫∫ f({labels[0]},{labels[1]},{labels[2]}) d{labels[0]} d{labels[1]} d{labels[2]} = {resultado_simbolico}
-{'='*70}
+📐 Notación integral:
+   ∫∫∫ f({labels[0]},{labels[1]},{labels[2]}) d{labels[0]} d{labels[1]} d{labels[2]} = {resultado_simbolico}
+
+═══════════════════════════════════════════════════════════════
 """
 
-            # Mostrar en el widget de texto
             self.result_text.delete(1.0, tk.END)
             self.result_text.insert(1.0, resultado_final)
             
@@ -469,14 +437,12 @@ DETALLES TÉCNICOS:
 
 
 def main():
-    """Función principal para ejecutar la aplicación"""
-    
+    """Función principal"""
     print("\n" + "="*60)
     print("🚀 CALCULADORA DE INTEGRALES TRIPLES")
     print("="*60)
-    print("📌 Versión mejorada con parser completo")
-    print("📌 Soporta: trigonometría, exponenciales, logaritmos, raíces")
-    print("📌 Sistemas: Rectangular, Cilíndrico, Esférico")
+    print("📌 Versión con AUTO-RELOAD")
+    print("📌 Los cambios en integral_calculator.py se cargan automáticamente")
     print("="*60 + "\n")
 
     try:
