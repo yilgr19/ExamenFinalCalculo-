@@ -1,13 +1,20 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import sympy as sp
+import importlib
+import sys
+import re
+
+# FORZAR RECARGA DEL MÓDULO
+if 'integral_calculator' in sys.modules:
+    importlib.reload(sys.modules['integral_calculator'])
 from integral_calculator import IntegralCalculator
 
 class IntegralApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Calculadora de Integrales Triples")
-        self.root.geometry("600x700")
+        self.root.title("🧮 Calculadora de Integrales Triples")
+        self.root.geometry("700x850")
 
         # Variables de control
         self.coordinate_system = tk.StringVar(value="rectangular")
@@ -29,23 +36,34 @@ class IntegralApp:
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         # Título
-        ttk.Label(main_frame, text="Calculadora de Integrales Triples", font=("Arial", 16, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
+        title_label = ttk.Label(main_frame, text="Calculadora de Integrales Triples", 
+                               font=("Arial", 16, "bold"))
+        title_label.grid(row=0, column=0, columnspan=2, pady=10)
 
         # Selector de sistema de coordenadas
-        ttk.Label(main_frame, text="Sistema de Coordenadas:").grid(row=1, column=0, sticky=tk.W)
+        ttk.Label(main_frame, text="Sistema de Coordenadas:").grid(row=1, column=0, sticky=tk.W, pady=5)
         coordinate_combo = ttk.Combobox(main_frame, textvariable=self.coordinate_system, 
                                         values=["rectangular", "cilíndrico", "esférico"], 
-                                        state="readonly", width=20)
-        coordinate_combo.grid(row=1, column=1, sticky=tk.W)
+                                        state="readonly", width=25)
+        coordinate_combo.grid(row=1, column=1, sticky=tk.W, pady=5)
         coordinate_combo.bind("<<ComboboxSelected>>", self.update_coordinate_labels)
 
         # Función a integrar
-        ttk.Label(main_frame, text="Función a integrar (f(x,y,z)):").grid(row=2, column=0, sticky=tk.W)
-        ttk.Entry(main_frame, textvariable=self.function_var, width=30).grid(row=2, column=1, sticky=tk.W)
+        ttk.Label(main_frame, text="Función a integrar:").grid(row=2, column=0, sticky=tk.W, pady=5)
+        function_entry = ttk.Entry(main_frame, textvariable=self.function_var, width=40)
+        function_entry.grid(row=2, column=1, sticky=tk.W, pady=5)
 
-        # Marcos para límites
-        limits_frame = ttk.LabelFrame(main_frame, text="Límites de Integración")
-        limits_frame.grid(row=3, column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E))
+        # Ayuda de sintaxis
+        help_frame = ttk.Frame(main_frame)
+        help_frame.grid(row=3, column=0, columnspan=2, pady=5, sticky=tk.W)
+        
+        help_text = "💡 Sintaxis: x*y, x^2, sin(x), cos(y), exp(z), log(x), sqrt(x), pi, e"
+        help_label = ttk.Label(help_frame, text=help_text, font=("Arial", 8), foreground="gray")
+        help_label.pack()
+
+        # Frame para límites
+        limits_frame = ttk.LabelFrame(main_frame, text="Límites de Integración", padding="10")
+        limits_frame.grid(row=4, column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E))
 
         # Etiquetas de límites
         self.limit_labels = {
@@ -59,34 +77,168 @@ class IntegralApp:
 
         # Entradas de límites
         self.limit_entries = {
-            "x_min": ttk.Entry(limits_frame, textvariable=self.x_min, width=10),
-            "x_max": ttk.Entry(limits_frame, textvariable=self.x_max, width=10),
-            "y_min": ttk.Entry(limits_frame, textvariable=self.y_min, width=10),
-            "y_max": ttk.Entry(limits_frame, textvariable=self.y_max, width=10),
-            "z_min": ttk.Entry(limits_frame, textvariable=self.z_min, width=10),
-            "z_max": ttk.Entry(limits_frame, textvariable=self.z_max, width=10)
+            "x_min": ttk.Entry(limits_frame, textvariable=self.x_min, width=12),
+            "x_max": ttk.Entry(limits_frame, textvariable=self.x_max, width=12),
+            "y_min": ttk.Entry(limits_frame, textvariable=self.y_min, width=12),
+            "y_max": ttk.Entry(limits_frame, textvariable=self.y_max, width=12),
+            "z_min": ttk.Entry(limits_frame, textvariable=self.z_min, width=12),
+            "z_max": ttk.Entry(limits_frame, textvariable=self.z_max, width=12)
         }
 
-        # Colocar etiquetas y entradas
+        # Colocar etiquetas y entradas en grid
         limit_positions = [
-            ("x_min", 0, 0), ("x_max", 0, 1), 
-            ("y_min", 1, 0), ("y_max", 1, 1), 
-            ("z_min", 2, 0), ("z_max", 2, 1)
+            ("x_min", 0, 0), ("x_max", 0, 2), 
+            ("y_min", 1, 0), ("y_max", 1, 2), 
+            ("z_min", 2, 0), ("z_max", 2, 2)
         ]
         for name, row, col in limit_positions:
-            self.limit_labels[name].grid(row=row, column=col*2, sticky=tk.W, padx=5)
-            self.limit_entries[name].grid(row=row, column=col*2+1, sticky=tk.W, padx=5)
+            self.limit_labels[name].grid(row=row, column=col, sticky=tk.E, padx=5, pady=3)
+            self.limit_entries[name].grid(row=row, column=col+1, sticky=tk.W, padx=5, pady=3)
 
-        # Botón de cálculo
-        ttk.Button(main_frame, text="Calcular Integral", command=self.calculate_integral).grid(row=4, column=0, columnspan=2, pady=10)
+        # Frame de botones
+        button_frame = ttk.Frame(main_frame)
+        button_frame.grid(row=5, column=0, columnspan=2, pady=15)
+        
+        calc_button = ttk.Button(button_frame, text="🧮 Calcular Integral", 
+                                command=self.calculate_integral)
+        calc_button.pack(side=tk.LEFT, padx=5)
+        
+        clear_button = ttk.Button(button_frame, text="🗑️ Limpiar", 
+                                 command=self.clear_results)
+        clear_button.pack(side=tk.LEFT, padx=5)
+        
+        examples_button = ttk.Button(button_frame, text="📚 Ejemplos", 
+                                    command=self.show_examples)
+        examples_button.pack(side=tk.LEFT, padx=5)
 
-        # Resultado
-        self.result_var = tk.StringVar()
-        resultado_label = ttk.Label(main_frame, textvariable=self.result_var, wraplength=500, justify=tk.LEFT, font=("Courier", 10))
-        resultado_label.grid(row=5, column=0, columnspan=2, pady=10, sticky='w')
+        # Frame de resultados con scrollbar
+        result_frame = ttk.LabelFrame(main_frame, text="Resultado", padding="5")
+        result_frame.grid(row=6, column=0, columnspan=2, pady=10, sticky='nsew')
+        
+        # Text widget con scrollbar
+        self.result_text = tk.Text(result_frame, height=22, width=80, wrap=tk.WORD, 
+                                   font=("Consolas", 9), bg="#f5f5f5")
+        scrollbar = ttk.Scrollbar(result_frame, orient="vertical", command=self.result_text.yview)
+        self.result_text.configure(yscrollcommand=scrollbar.set)
+        
+        self.result_text.grid(row=0, column=0, sticky='nsew')
+        scrollbar.grid(row=0, column=1, sticky='ns')
+        
+        result_frame.grid_rowconfigure(0, weight=1)
+        result_frame.grid_columnconfigure(0, weight=1)
+
+        # Configurar expansión de widgets
+        main_frame.grid_rowconfigure(6, weight=1)
+        main_frame.grid_columnconfigure(1, weight=1)
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
 
         # Actualizar etiquetas iniciales
         self.update_coordinate_labels()
+        
+        # Mensaje inicial
+        self.result_text.insert(1.0, "👋 Bienvenido a la Calculadora de Integrales Triples\n\n"
+                                    "Ingresa una función y límites, luego presiona 'Calcular Integral'.\n"
+                                    "Usa el botón 'Ejemplos' para ver funciones de prueba.")
+
+    def parse_function_complete(self, func_str):
+        """
+        Parser matemático completo mejorado
+        Soporta: trigonometría, exponenciales, logaritmos, raíces, etc.
+        """
+        print("=" * 60)
+        print(f"📝 Parseando función: '{func_str}'")
+        
+        # 1. Reemplazos de símbolos especiales
+        replacements = {
+            '^': '**',           # Potencias
+            '√': 'sqrt',         # Raíz cuadrada
+            'π': 'pi',           # Pi
+            '×': '*',            # Multiplicación alternativa
+            '÷': '/',            # División alternativa
+        }
+        
+        for old, new in replacements.items():
+            func_str = func_str.replace(old, new)
+        
+        print(f"   Después de reemplazos: '{func_str}'")
+        
+        # 2. Agregar multiplicación implícita
+        func_str = re.sub(r'(\d)([a-zA-Z(])', r'\1*\2', func_str)  # 2x, 2(
+        func_str = re.sub(r'([a-zA-Z)])(\d)', r'\1*\2', func_str)  # x2, )2
+        func_str = re.sub(r'\)(\()', r')*\1', func_str)            # )(
+        func_str = re.sub(r'([a-zA-Z0-9)])(\()', r'\1*\2', func_str)  # x(, 2(
+        func_str = re.sub(r'\)([a-zA-Z])', r')*\1', func_str)      # )x
+        
+        print(f"   Después de multiplicación implícita: '{func_str}'")
+        
+        # 3. Definir símbolos
+        x, y, z = sp.symbols('x y z', real=True)
+        r, theta, rho, phi = sp.symbols('r theta rho phi', real=True, positive=True)
+        
+        # 4. Diccionario completo de funciones y constantes
+        locals_dict = {
+            # Variables
+            'x': x, 'y': y, 'z': z,
+            'r': r, 'theta': theta, 'rho': rho, 'phi': phi,
+            
+            # Constantes
+            'pi': sp.pi,
+            'e': sp.E,
+            'E': sp.E,
+            
+            # Funciones trigonométricas
+            'sin': sp.sin,
+            'cos': sp.cos,
+            'tan': sp.tan,
+            'sec': sp.sec,
+            'csc': sp.csc,
+            'cot': sp.cot,
+            
+            # Funciones trigonométricas inversas
+            'asin': sp.asin,
+            'acos': sp.acos,
+            'atan': sp.atan,
+            'asec': sp.asec,
+            'acsc': sp.acsc,
+            'acot': sp.acot,
+            
+            # Funciones hiperbólicas
+            'sinh': sp.sinh,
+            'cosh': sp.cosh,
+            'tanh': sp.tanh,
+            
+            # Exponenciales y logaritmos
+            'exp': sp.exp,
+            'log': sp.log,    # logaritmo natural (ln)
+            'ln': sp.log,     # logaritmo natural
+            
+            # Raíces y potencias
+            'sqrt': sp.sqrt,
+            'cbrt': lambda x: x**(sp.Rational(1, 3)),  # raíz cúbica
+            
+            # Valor absoluto
+            'abs': sp.Abs,
+            'Abs': sp.Abs,
+        }
+        
+        try:
+            # 5. Convertir a expresión SymPy
+            parsed_func = sp.sympify(func_str, locals=locals_dict)
+            print(f"✅ Función parseada: {parsed_func}")
+            print(f"   Tipo: {type(parsed_func)}")
+            print("=" * 60)
+            return parsed_func
+            
+        except Exception as e:
+            print(f"❌ ERROR al parsear: {e}")
+            print("=" * 60)
+            raise ValueError(f"No se pudo parsear la función: {func_str}\nError: {e}")
+
+    def parse_limit(self, limit_str):
+        """Parsear límites de integración"""
+        limit_str = limit_str.replace('π', 'pi').replace('^', '**')
+        return sp.sympify(limit_str, locals={'pi': sp.pi, 'e': sp.E})
 
     def update_coordinate_labels(self, event=None):
         """Actualizar etiquetas de límites según el sistema de coordenadas"""
@@ -104,194 +256,239 @@ class IntegralApp:
         for name, label in zip(limit_names, labels):
             self.limit_labels[name].config(text=label)
 
+    def clear_results(self):
+        """Limpiar resultados"""
+        self.result_text.delete(1.0, tk.END)
+        self.result_text.insert(1.0, "✅ Resultados limpios. Listo para un nuevo cálculo.")
+
+    def show_examples(self):
+        """Mostrar ejemplos de funciones"""
+        examples = """╔═══════════════════════════════════════════════════════════════════╗
+║                📚 EJEMPLOS DE FUNCIONES                           ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+🔹 BÁSICAS:
+   • x*y*z                    → Producto simple
+   • x^2 + y^2 + z^2          → Suma de cuadrados
+   • 2*x*y + 3*z              → Combinación lineal
+
+🔹 TRIGONOMÉTRICAS:
+   • sin(x)*cos(y)            → Producto de seno y coseno
+   • sin(pi*x)*sin(pi*y)      → Con constante pi
+   • cos(x)^2 + sin(x)^2      → Identidad trigonométrica
+
+🔹 EXPONENCIALES:
+   • exp(x + y + z)           → Exponencial de suma
+   • e^(x*y)                  → Exponencial de producto
+   • exp(-x^2 - y^2)          → Gaussiana 2D
+
+🔹 LOGARITMOS:
+   • log(x + 1)               → Logaritmo natural
+   • ln(x*y + 1)              → Logaritmo de producto
+
+🔹 RAÍCES:
+   • sqrt(x^2 + y^2)          → Raíz cuadrada
+   • sqrt(1 - x^2)            → Raíz con resta
+
+🔹 RACIONALES:
+   • 1/(1 + x^2)              → Función racional simple
+   • x/(1 + y^2 + z^2)        → Racional con múltiples variables
+
+🔹 COMPLEJAS:
+   • exp(-x^2)*sin(pi*y)      → Exponencial con trigonométrica
+   • sqrt(x^2 + y^2)*cos(z)   → Raíz con coseno
+   • x*sin(y)/sqrt(1 + z^2)   → Combinación múltiple
+
+═══════════════════════════════════════════════════════════════════
+💡 SINTAXIS DISPONIBLE:
+
+   Operadores:  +  -  *  /  ^  **
+   Constantes:  pi  e
+   Trig:        sin  cos  tan  sec  csc  cot
+   Trig inv:    asin  acos  atan
+   Hiperbólica: sinh  cosh  tanh
+   Otras:       exp  log  ln  sqrt  abs
+
+💡 TIP: Usa paréntesis para agrupar: sin(x*y) ≠ sin(x)*y
+═══════════════════════════════════════════════════════════════════
+
+🎯 EJERCICIO DE PRUEBA:
+   Función: x*y*z
+   Límites: x[0,1], y[0,1], z[0,1]
+   Resultado esperado: 0.125 (1/8)
+"""
+        self.result_text.delete(1.0, tk.END)
+        self.result_text.insert(1.0, examples)
+
     def calculate_integral(self):
         """Calcular la integral según el sistema de coordenadas seleccionado"""
         try:
-            # Importaciones necesarias
-            import sympy as sp
-            import re
-            import traceback
-            import sys
-            
-            # Configurar codificación
-            sys.stdout.reconfigure(encoding='utf-8')
-            
-            # Definir símbolos matemáticos
-            pi = sp.pi
-            
-            # Crear símbolos de manera más explícita
-            x, y, z, r, theta, rho = sp.symbols('x y z r theta rho', real=True, positive=True)
-            
-            # Función de depuración
-            def debug_print(message):
-                try:
-                    print(message)
-                except Exception:
-                    print(message.encode('ascii', 'ignore').decode('ascii'))
-            
-            # Parsear la función con símbolos matemáticos
-            def parse_function(func_str):
-                # Preprocesamiento de la función
-                debug_print(f"DEBUG: Parseando función original: {func_str}")
-                
-                # Reemplazar potencias con ^
-                func_str = func_str.replace('^', '**')
-                
-                # Preservar funciones trigonométricas
-                func_str = re.sub(r'\b(sin|cos|tan)\(', r'\1(', func_str)
-                
-                # Agregar multiplicación implícita
-                func_str = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', func_str)
-                func_str = re.sub(r'([a-zA-Z])(\d)', r'\1*\2', func_str)
-                
-                debug_print(f"DEBUG: Función después de preprocesamiento: {func_str}")
-                
-                # Diccionario de locales para evaluación segura
-                locals_dict = {
-                    'x': x, 'y': y, 'z': z, 
-                    'r': r, 'theta': theta, 'rho': rho,
-                    'pi': pi, 
-                    'sin': sp.sin, 
-                    'cos': sp.cos, 
-                    'tan': sp.tan
-                }
-                
-                try:
-                    # Convertir a expresión sympy
-                    f = sp.sympify(func_str, locals=locals_dict)
-                    debug_print(f"DEBUG: Función parseada: {f}")
-                    return f
-                except Exception as e:
-                    debug_print(f"Error al parsear función: {e}")
-                    raise
-            
-            # Parsear límites
-            def parse_limit(limit_str, symbol=None):
-                # Preprocesamiento de límites
-                debug_print(f"DEBUG: Parseando límite original: {limit_str}")
-                
-                # Reemplazar pi por su valor simbólico
-                limit_str = limit_str.replace('π', 'pi')
-                
-                # Reemplazar potencias con ^
-                limit_str = limit_str.replace('^', '**')
-                
-                debug_print(f"DEBUG: Límite después de reemplazos: {limit_str}")
-                
-                # Diccionario de locales para evaluación segura
-                locals_dict = {'pi': pi}
-                
-                try:
-                    # Convertir a valor numérico o simbólico
-                    limit = sp.sympify(limit_str, locals=locals_dict)
-                    debug_print(f"DEBUG: Límite parseado: {limit}")
-                    return limit
-                except Exception as e:
-                    debug_print(f"Error al parsear límite: {e}")
-                    raise
-            
-            # Obtener valores de la interfaz
+            print("\n" + "="*60)
+            print("🚀 NUEVA EJECUCIÓN DE CÁLCULO")
+            print("="*60)
+
+            # Obtener sistema de coordenadas
             coordinate_system = self.coordinate_system.get().lower()
             func_str = self.function_var.get()
-            
-            # Validar sistema de coordenadas
-            valid_systems = ['rectangular', 'cilindrico', 'cilíndrico', 'esférico', 'esf', 'esferico']
-            if coordinate_system not in valid_systems:
-                raise ValueError(f"Sistema de coordenadas no válido: {coordinate_system}")
-            
-            # Normalizar sistema de coordenadas
+
             if coordinate_system in ['cilindrico', 'cilíndrico']:
                 coordinate_system = 'cilindrico'
-            elif coordinate_system in ['esférico', 'esf', 'esferico']:
-                coordinate_system = 'esférico'
-            
-            # Parsear función
-            f = parse_function(func_str)
-            
-            # Parsear límites según el sistema de coordenadas
+            elif coordinate_system in ['esférico', 'esferico']:
+                coordinate_system = 'esferico'
+
+            print(f"🎯 Sistema: {coordinate_system}")
+
+            # Parsear función con el parser mejorado
+            f = self.parse_function_complete(func_str)
+
+            # Calcular según sistema
             if coordinate_system == 'rectangular':
-                # Parsear límites para coordenadas rectangulares
-                x_min = parse_limit(self.x_min.get())
-                x_max = parse_limit(self.x_max.get())
-                y_min = parse_limit(self.y_min.get())
-                y_max = parse_limit(self.y_max.get())
-                z_min = parse_limit(self.z_min.get())
-                z_max = parse_limit(self.z_max.get())
+                x_min = self.parse_limit(self.x_min.get())
+                x_max = self.parse_limit(self.x_max.get())
+                y_min = self.parse_limit(self.y_min.get())
+                y_max = self.parse_limit(self.y_max.get())
+                z_min = self.parse_limit(self.z_min.get())
+                z_max = self.parse_limit(self.z_max.get())
                 
-                # Calcular integral rectangular
+                print(f"📊 Límites: x[{x_min},{x_max}], y[{y_min},{y_max}], z[{z_min},{z_max}]")
+                
                 resultado = IntegralCalculator.integral_rectangular(
                     f, [x_min, x_max], [y_min, y_max], [z_min, z_max]
                 )
-            
+                labels = ('x', 'y', 'z')
+
             elif coordinate_system == 'cilindrico':
-                # Parsear límites para coordenadas cilíndricas
-                r_min = parse_limit(self.x_min.get())
-                r_max = parse_limit(self.x_max.get())
-                theta_min = parse_limit(self.y_min.get())
-                theta_max = parse_limit(self.y_max.get())
-                z_min = parse_limit(self.z_min.get())
-                z_max = parse_limit(self.z_max.get())
+                r_min = self.parse_limit(self.x_min.get())
+                r_max = self.parse_limit(self.x_max.get())
+                theta_min = self.parse_limit(self.y_min.get())
+                theta_max = self.parse_limit(self.y_max.get())
+                z_min = self.parse_limit(self.z_min.get())
+                z_max = self.parse_limit(self.z_max.get())
                 
-                # Calcular integral cilíndrica
+                print(f"📊 Límites: r[{r_min},{r_max}], θ[{theta_min},{theta_max}], z[{z_min},{z_max}]")
+                
                 resultado = IntegralCalculator.integral_cylindrical(
                     f, [r_min, r_max], [theta_min, theta_max], [z_min, z_max]
                 )
-            
-            elif coordinate_system == 'esférico':
-                # Parsear límites para coordenadas esféricas
-                rho_min = parse_limit(self.x_min.get())
-                rho_max = parse_limit(self.x_max.get())
-                theta_min = parse_limit(self.y_min.get())
-                theta_max = parse_limit(self.y_max.get())
-                phi_min = parse_limit(self.z_min.get())
-                phi_max = parse_limit(self.z_max.get())
+                labels = ('r', 'θ', 'z')
+
+            elif coordinate_system == 'esferico':
+                rho_min = self.parse_limit(self.x_min.get())
+                rho_max = self.parse_limit(self.x_max.get())
+                theta_min = self.parse_limit(self.y_min.get())
+                theta_max = self.parse_limit(self.y_max.get())
+                phi_min = self.parse_limit(self.z_min.get())
+                phi_max = self.parse_limit(self.z_max.get())
                 
-                # Calcular integral esférica
+                print(f"📊 Límites: ρ[{rho_min},{rho_max}], θ[{theta_min},{theta_max}], φ[{phi_min},{phi_max}]")
+                
                 resultado = IntegralCalculator.integral_spherical(
                     f, [rho_min, rho_max], [theta_min, theta_max], [phi_min, phi_max]
                 )
-            
+                labels = ('ρ', 'θ', 'φ')
             else:
                 raise ValueError("Sistema de coordenadas no válido")
-            
-            # Mostrar resultados
-            resultado_manual = resultado['resultado_manual']
-            resultado_simbolico = resultado['resultado_simbolico']
-            resultado_simbolico_evaluado = resultado['resultado_simbolico_evaluado']
-            pasos = resultado['pasos']
-            
-            # Limpiar pantalla de resultados
-            self.result_var.set("") # Clear the StringVar
-            self.result_var.set(f"""Procedimiento paso a paso:
+
+            # Formatear resultados
+            print(f"\n📈 Resultados obtenidos")
+
+            def formatear_numero(valor):
+                if valor is None:
+                    return "❌ None (No se pudo calcular numéricamente)"
+                try:
+                    # Intentar mostrar más precisión
+                    num_str = f"{valor:.12f}"
+                    # Eliminar ceros innecesarios
+                    num_str = num_str.rstrip('0').rstrip('.')
+                    return num_str
+                except:
+                    return str(valor)
+
+            resultado_manual = formatear_numero(resultado.get('resultado_manual'))
+            resultado_simbolico = str(resultado.get('resultado_simbolico'))
+            resultado_simbolico_evaluado = formatear_numero(resultado.get('resultado_simbolico_evaluado'))
+            pasos = resultado.get('pasos', "Sin pasos")
+
+            # Crear resultado formateado
+            resultado_final = f"""{'='*70}
+                    PROCEDIMIENTO PASO A PASO
+{'='*70}
+
 {pasos}
 
-Límites:
-r: {self.x_min.get()} → {self.x_max.get()}
-θ: {self.y_min.get()} → {self.y_max.get()}
-z: {self.z_min.get()} → {self.z_max.get()}
+{'='*70}
+                   LÍMITES DE INTEGRACIÓN
+{'='*70}
+{labels[0]}: {self.x_min.get()} → {self.x_max.get()}
+{labels[1]}: {self.y_min.get()} → {self.y_max.get()}
+{labels[2]}: {self.z_min.get()} → {self.z_max.get()}
 
-Resultado de la integral:
-Valor numérico: {resultado_manual}
-Valor simbólico: {resultado_simbolico}
-Valor simbólico evaluado: {resultado_simbolico_evaluado}
+{'='*70}
+                      RESULTADO FINAL
+{'='*70}
+✅ Valor numérico: {resultado_manual}
+📝 Expresión simbólica: {resultado_simbolico}
+🔢 Valor evaluado: {resultado_simbolico_evaluado}
 
-∫ f(r,θ,z) dz dθ dr = {resultado_simbolico} = {resultado_manual}""")
-        
+Notación integral:
+∫∫∫ f({labels[0]},{labels[1]},{labels[2]}) d{labels[0]} d{labels[1]} d{labels[2]} = {resultado_simbolico}
+{'='*70}
+"""
+
+            # Mostrar en el widget de texto
+            self.result_text.delete(1.0, tk.END)
+            self.result_text.insert(1.0, resultado_final)
+            
+            print("✅ Cálculo completado exitosamente")
+            print("="*60 + "\n")
+
         except Exception as e:
-            # Mostrar mensaje de error
             import traceback
-            error_msg = f"Error: {str(e)}\n\nDetalles:\n{traceback.format_exc()}"
-            
-            # Mostrar error en la interfaz
-            self.result_var.set(f"Error: {error_msg}")
-            
-            # Opcional: mostrar mensaje de error en una ventana emergente
-            messagebox.showerror("Error en el cálculo", error_msg)
+            error_msg = f"""{'='*70}
+❌ ERROR EN EL CÁLCULO
+{'='*70}
+
+Error: {str(e)}
+
+{'='*70}
+DETALLES TÉCNICOS:
+{'='*70}
+{traceback.format_exc()}
+{'='*70}
+
+💡 Sugerencias:
+   • Verifica la sintaxis de la función
+   • Revisa que los límites sean válidos
+   • Usa paréntesis para agrupar operaciones
+   • Consulta los ejemplos con el botón 'Ejemplos'
+"""
+            print(error_msg)
+            self.result_text.delete(1.0, tk.END)
+            self.result_text.insert(1.0, error_msg)
+            messagebox.showerror("Error en el cálculo", str(e))
+
 
 def main():
-    root = tk.Tk()
-    app = IntegralApp(root)
-    root.mainloop()
+    """Función principal para ejecutar la aplicación"""
+    
+    print("\n" + "="*60)
+    print("🚀 CALCULADORA DE INTEGRALES TRIPLES")
+    print("="*60)
+    print("📌 Versión mejorada con parser completo")
+    print("📌 Soporta: trigonometría, exponenciales, logaritmos, raíces")
+    print("📌 Sistemas: Rectangular, Cilíndrico, Esférico")
+    print("="*60 + "\n")
+
+    try:
+        root = tk.Tk()
+        app = IntegralApp(root)
+        root.mainloop()
+    except Exception as e:
+        import traceback
+        print("❌ ERROR CRÍTICO:")
+        print(traceback.format_exc())
+        input("Presione Enter para salir...")
+
 
 if __name__ == "__main__":
     main()

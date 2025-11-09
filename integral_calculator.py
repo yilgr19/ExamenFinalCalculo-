@@ -1,244 +1,242 @@
+"""
+ARCHIVO: integral_calculator.py
+DESCRIPCIÓN: Calculadora de integrales triples en diferentes sistemas de coordenadas
+AUTOR: Versión corregida
+"""
+
 import sympy as sp
-import numpy as np
+
 
 class IntegralCalculator:
-    @staticmethod
-    def integral_rectangular(f, x_limits, y_limits, z_limits):
-        """
-        Calcular integral triple en coordenadas rectangulares con pasos intermedios
-        
-        :param f: Función a integrar (expresión sympy)
-        :param x_limits: Límites de x [x_min, x_max]
-        :param y_limits: Límites de y [y_min, y_max]
-        :param z_limits: Límites de z [z_min, z_max]
-        :return: Diccionario con resultado y pasos intermedios
-        """
-        x, y, z = sp.symbols('x y z')
-        
-        # Paso 1: Integrar respecto a z
-        z_min, z_max = z_limits
-        # Integrar correctamente respecto a z
-        integral_z = sp.integrate(f, (z, z_min, z_max))
-        paso_z = f"∫{z_min}^{z_max} ({f}) dz = {integral_z}"
-        
-        # Paso 2: Integrar respecto a y
-        y_min, y_max = y_limits
-        integral_y = sp.integrate(integral_z, (y, y_min, y_max))
-        paso_y = f"∫{y_min}^{y_max} ({integral_z}) dy = {integral_y}"
-        
-        # Paso 3: Integrar respecto a x
-        x_min, x_max = x_limits
-        # Usar integración simbólica con límites
-        resultado_final = sp.integrate(integral_y, (x, x_min, x_max))
-        paso_x = f"∫{x_min}^{x_max} ({integral_y}) dx = {resultado_final}"
-        
-        # Preparar pasos detallados
-        pasos = [
-            f"1. Integramos respecto a z: {paso_z}",
-            f"2. Integramos respecto a y: {paso_y}",
-            f"3. Integramos respecto a x: {paso_x}"
-        ]
-        
-        # Cálculo simbólico adicional para verificación
-        try:
-            # Método de evaluación simbólica completamente sustituido
-            def evaluar_simbolico(expr):
-                # Intentar diferentes métodos de evaluación
-                try:
-                    # Método 1: Usar el resultado simbólico directo
-                    return float(expr)
-                except Exception as e1:
-                    try:
-                        # Método 2: Usar evalf()
-                        return float(expr.evalf())
-                    except Exception as e2:
-                        try:
-                            # Método 3: Usar N()
-                            return float(sp.N(expr))
-                        except Exception as e3:
-                            # Si todos los métodos fallan, usar 1.5
-                            print(f"Errores de evaluación:")
-                            print(f"Método 1: {e1}")
-                            print(f"Método 2: {e2}")
-                            print(f"Método 3: {e3}")
-                            return 1.5  # Valor correcto para el ejemplo
-            
-            # Evaluar el resultado simbólico
-            resultado_simbolico_evaluado = evaluar_simbolico(resultado_final)
-            
-            print(f"\nResultado simbólico evaluado: {resultado_simbolico_evaluado}")
-        except Exception as e:
-            print(f"Error general en evaluacion simbolica: {e}")
-            # Usar valor correcto como respaldo
-            resultado_simbolico_evaluado = 1.5
-        
-        return {
-            'resultado_manual': float(resultado_simbolico_evaluado),
-            'resultado_simbolico': resultado_final,
-            'resultado_simbolico_evaluado': float(resultado_simbolico_evaluado),
-            'pasos': pasos
-        }
+    """Clase para calcular integrales triples en diferentes sistemas de coordenadas"""
     
     @staticmethod
-    def integral_cylindrical(f, r_limits, theta_limits, z_limits):
+    def integral_rectangular(f, x_lim, y_lim, z_lim):
         """
-        Calcular integral triple en coordenadas cilíndricas con pasos intermedios
-        
-        :param f: Función a integrar (expresión sympy)
-        :param r_limits: Límites de r [r_min, r_max]
-        :param theta_limits: Límites de theta [theta_min, theta_max]
-        :param z_limits: Límites de z [z_min, z_max]
-        :return: Diccionario con resultado y pasos intermedios
+        Calcular integral triple en coordenadas rectangulares
+        Orden correcto: ∫∫∫ f(x,y,z) dx dy dz
         """
-        r, theta, z = sp.symbols('r theta z')
-        
-        # Paso 1: Integrar respecto a z
-        z_min, z_max = z_limits
-        # Multiplicar por intervalo de z
-        integral_z = f * (z_max - z_min)
-        paso_z = f"∫{z_min}^{z_max} ({f}) dz = {integral_z}"
-        
-        # Paso 2: Integrar respecto a theta
-        # Aplicar el jacobiano r y cos(theta) correctamente
-        theta_min, theta_max = theta_limits
-        integral_theta = sp.integrate(integral_z * r * sp.cos(theta), (theta, theta_min, theta_max))
-        paso_theta = f"∫{theta_min}^{theta_max} ({integral_z}) * r * cos(θ) dθ = {integral_theta}"
-        
-        # Paso 3: Integrar respecto a r
-        r_min, r_max = r_limits
-        # Usar r³ como factor Jacobiano en coordenadas cilíndricas
-        resultado_final = sp.integrate(integral_theta, (r, r_min, r_max))
-        paso_r = f"∫{r_min}^{r_max} ({integral_theta}) dr = {resultado_final}"
-        
-        # Preparar pasos detallados
-        pasos = [
-            f"1. Integramos respecto a z: {paso_z}",
-            f"2. Integramos respecto a θ (con r * cos(θ)): {paso_theta}",
-            f"3. Integramos respecto a r: {paso_r}"
-        ]
-        
-        # Cálculo manual detallado con alta precisión
-        r_min_val = float(r_min)
-        r_max_val = float(r_max)
-        theta_min_val = float(theta_min)
-        theta_max_val = float(theta_max)
-        z_min_val = float(z_min)
-        z_max_val = float(z_max)
-        
-        # Componentes del cálculo con alta precisión
-        z_component = z_max_val - z_min_val  # 1
-        
-        # Corrección en el cálculo de theta
-        theta_component = sp.sin(theta_max_val) - sp.sin(theta_min_val)
-        
-        # Corrección de la integral de r: r⁴/4
-        r_component = (r_max_val**4 - r_min_val**4) / 4
-        
-        # Cálculo paso a paso 
-        resultado_manual = z_component * theta_component * r_component
-        
-        # Imprimir componentes para depuración
-        print("Desglose detallado del cálculo:")
-        print(f"Componente z (intervalo): {z_component}")
-        print(f"  Límites z: {z_min_val} → {z_max_val}")
-        print(f"  Cálculo: {z_max_val} - {z_min_val} = {z_component}")
-        
-        print(f"\nComponente θ (sin(θ_max) - sin(θ_min)): {theta_component}")
-        print(f"  Límites θ: {theta_min_val} → {theta_max_val}")
-        print(f"  Cálculo: sin({theta_max_val}) - sin({theta_min_val}) = {theta_component}")
-        
-        print(f"\nComponente r ((r_max⁴ - r_min⁴) / 4): {r_component}")
-        print(f"  Límites r: {r_min_val} → {r_max_val}")
-        print(f"  Cálculo: ({r_max_val}⁴ - {r_min_val}⁴) / 4 = {r_component}")
-        
-        print(f"\nResultado manual:")
-        print(f"  {z_component} * {theta_component} * {r_component} = {resultado_manual}")
-        
-        # Cálculo simbólico adicional para verificación
+        x, y, z = sp.symbols('x y z', real=True)
+        pasos = []
+
+        pasos.append("Sistema: Rectangular")
+        pasos.append(f"Función original: f(x,y,z) = {f}")
+        pasos.append("Orden de integración: dx dy dz")
+
         try:
-            # Método de evaluación simbólica completamente sustituido
-            resultado_simbolico_evaluado = 65 * (2 - sp.sqrt(2)) / 8
-            
-            print(f"\nResultado simbólico evaluado: {resultado_simbolico_evaluado}")
+            # 1️⃣ Integrar respecto a x
+            I_x = sp.integrate(f, (x, x_lim[0], x_lim[1]))
+            I_x = sp.simplify(I_x)
+            pasos.append(f"1️⃣ ∫ f dx = {I_x}")
+
+            # 2️⃣ Integrar respecto a y
+            I_y = sp.integrate(I_x, (y, y_lim[0], y_lim[1]))
+            I_y = sp.simplify(I_y)
+            pasos.append(f"2️⃣ ∫ (resultado anterior) dy = {I_y}")
+
+            # 3️⃣ Integrar respecto a z
+            I_z = sp.integrate(I_y, (z, z_lim[0], z_lim[1]))
+            I_z = sp.simplify(I_z)
+            pasos.append(f"3️⃣ ∫ (resultado anterior) dz = {I_z}")
+
+            resultado_simbolico = sp.simplify(I_z)
+
+            try:
+                resultado_numerico = float(sp.N(resultado_simbolico, 15))
+            except Exception:
+                resultado_numerico = None
+
+            return {
+                "resultado_manual": resultado_numerico,
+                "resultado_simbolico": resultado_simbolico,
+                "resultado_simbolico_evaluado": resultado_numerico,
+                "pasos": "\n".join(pasos)
+            }
+
         except Exception as e:
-            print(f"Error en evaluacion simbolica: {e}")
-            # Usar el resultado manual como respaldo
-            resultado_simbolico_evaluado = resultado_manual
-        
-        return {
-            'resultado_manual': float(resultado_manual),
-            'resultado_simbolico': sp.simplify(65 * (2 - sp.sqrt(2)) / 8),
-            'resultado_simbolico_evaluado': float(resultado_simbolico_evaluado),
-            'pasos': pasos
-        }
-    
+            return {
+                "resultado_manual": None,
+                "resultado_simbolico": str(e),
+                "resultado_simbolico_evaluado": None,
+                "pasos": f"Error en integración: {str(e)}"
+            }
+
     @staticmethod
-    def integral_spherical(f, rho_limits, theta_limits, phi_limits):
+    def integral_cylindrical(f, r_lim, theta_lim, z_lim):
         """
-        Calcular integral triple en coordenadas esféricas con pasos intermedios
+        Calcular integral triple en coordenadas cilíndricas.
+        Orden correcto: ∫∫∫ f(r,θ,z) * r dz dr dθ
+        Jacobiano: r
         
-        :param f: Función a integrar (expresión sympy)
-        :param rho_limits: Límites de rho [rho_min, rho_max]
-        :param theta_limits: Límites de theta [theta_min, theta_max]
-        :param phi_limits: Límites de phi [phi_min, phi_max]
-        :return: Diccionario con resultado y pasos intermedios
+        IMPORTANTE: La función f debe estar en términos de los símbolos
+        r, theta, z definidos internamente.
         """
-        rho, theta, phi = sp.symbols('rho theta phi')
-        
-        # Paso 1: Integrar respecto a phi con sin(φ)cos(φ)
-        phi_min, phi_max = phi_limits
-        # Función con jacobiano esférico: f * rho^2 * sin(phi)
-        integral_phi = sp.integrate(f * rho**2 * sp.sin(phi), (phi, phi_min, phi_max))
-        paso_phi = f"∫{phi_min}^{phi_max} ({f}) * ρ² * sin(φ) dφ = {integral_phi}"
-        
-        # Paso 2: Integrar respecto a theta
-        theta_min, theta_max = theta_limits
-        integral_theta = sp.integrate(integral_phi, (theta, theta_min, theta_max))
-        paso_theta = f"∫{theta_min}^{theta_max} ({integral_phi}) dθ = {integral_theta}"
-        
-        # Paso 3: Integrar respecto a rho
-        rho_min, rho_max = rho_limits
-        resultado_final = sp.integrate(integral_theta, (rho, rho_min, rho_max))
-        paso_rho = f"∫{rho_min}^{rho_max} ({integral_theta}) dρ = {resultado_final}"
-        
-        # Preparar pasos detallados
-        pasos = [
-            f"1. Integramos respecto a φ (con ρ² * sin(φ)): {paso_phi}",
-            f"2. Integramos respecto a θ: {paso_theta}",
-            f"3. Integramos respecto a ρ: {paso_rho}"
-        ]
-        
-        # Cálculo simbólico adicional para verificación
+        # Definir símbolos locales
+        r, theta, z = sp.symbols('r theta z', real=True, positive=True)
+        pasos = []
+
+        pasos.append("Sistema: Cilíndrico")
+        pasos.append(f"Función original: f(r,θ,z) = {f}")
+        pasos.append("Orden de integración: dz dr dθ")
+
+        # CRÍTICO: Substituir los símbolos de la función por los locales
+        # Esto asegura que estemos usando exactamente los mismos símbolos
+        f_local = f.subs([
+            (sp.Symbol('r', real=True), r),
+            (sp.Symbol('r', real=True, positive=True), r),
+            (sp.Symbol('theta', real=True), theta),
+            (sp.Symbol('theta', real=True, positive=True), theta),
+            (sp.Symbol('z', real=True), z),
+            (sp.Symbol('z', real=True, positive=True), z)
+        ])
+
+        # Multiplicamos por el Jacobiano (r)
+        integrando = f_local * r
+        pasos.append(f"Integrando con Jacobiano (r): {integrando}")
+
         try:
-            # Método de evaluación numérica
-            def evaluar_simbolico(expr):
+            # 1️⃣ Integrar respecto a z
+            I_z = sp.integrate(integrando, (z, z_lim[0], z_lim[1]))
+            I_z = sp.simplify(I_z)
+            pasos.append(f"1️⃣ ∫ f*r dz = {I_z}")
+
+            # 2️⃣ Integrar respecto a r
+            I_r = sp.integrate(I_z, (r, r_lim[0], r_lim[1]))
+            I_r = sp.simplify(I_r)
+            pasos.append(f"2️⃣ ∫ (resultado anterior) dr = {I_r}")
+
+            # 3️⃣ Integrar respecto a θ
+            I_theta = sp.integrate(I_r, (theta, theta_lim[0], theta_lim[1]))
+            I_theta = sp.simplify(I_theta)
+            pasos.append(f"3️⃣ ∫ (resultado anterior) dθ = {I_theta}")
+
+            # Simplificar resultado final
+            resultado_simbolico = sp.simplify(I_theta)
+            
+            # Forzar evaluación numérica completa
+            try:
+                resultado_simbolico_evaluado = sp.N(resultado_simbolico, 15)
+                resultado_manual = float(resultado_simbolico_evaluado)
+            except:
+                resultado_simbolico_evaluado = resultado_simbolico.evalf()
                 try:
-                    # Método 1: Usar N() de SymPy con alta precisión
-                    return float(sp.N(expr, 15))
-                except Exception as e1:
-                    try:
-                        # Método 2: Usar evalf()
-                        return float(expr.evalf(15))
-                    except Exception as e2:
-                        # Si falla, imprimir errores
-                        print(f"Error en evaluación numérica:")
-                        print(f"Método 1: {e1}")
-                        print(f"Método 2: {e2}")
-                        # Usar valor correcto para este ejemplo
-                        return 0.785398  # π/4
-            
-            # Evaluar el resultado simbólico
-            resultado_numerico = evaluar_simbolico(resultado_final)
-            
-            print(f"\nResultado numérico: {resultado_numerico}")
+                    resultado_manual = float(resultado_simbolico_evaluado)
+                except:
+                    resultado_manual = None
+
+            return {
+                "resultado_manual": resultado_manual,
+                "resultado_simbolico": resultado_simbolico,
+                "resultado_simbolico_evaluado": resultado_simbolico_evaluado,
+                "pasos": "\n".join(pasos)
+            }
+
         except Exception as e:
-            print(f"Error general en evaluación simbólica: {e}")
-            # Usar valor correcto como respaldo
-            resultado_numerico = 0.785398  # π/4
-        
-        return {
-            'resultado_manual': resultado_numerico,
-            'resultado_simbolico': sp.simplify(resultado_final),
-            'resultado_simbolico_evaluado': resultado_numerico,
-            'pasos': pasos
-        }
+            return {
+                "resultado_manual": None,
+                "resultado_simbolico": str(e),
+                "resultado_simbolico_evaluado": None,
+                "pasos": f"Error en integración cilíndrica: {str(e)}"
+            }
+
+    @staticmethod
+    def integral_spherical(f, rho_lim, theta_lim, phi_lim):
+        """
+        Calcular integral triple en coordenadas esféricas
+        Orden correcto: ∫∫∫ f(ρ,θ,φ) * ρ² sin(φ) dρ dθ dφ
+        Jacobiano: ρ² sin(φ)
+        """
+        # Definir símbolos locales
+        rho, theta, phi = sp.symbols('rho theta phi', real=True, positive=True)
+        pasos = []
+
+        pasos.append("Sistema: Esférico")
+        pasos.append(f"Función original: f(ρ,θ,φ) = {f}")
+        pasos.append("Orden de integración: dρ dθ dφ")
+
+        # Substituir símbolos para asegurar consistencia
+        f_local = f.subs([
+            (sp.Symbol('rho', real=True), rho),
+            (sp.Symbol('rho', real=True, positive=True), rho),
+            (sp.Symbol('theta', real=True), theta),
+            (sp.Symbol('theta', real=True, positive=True), theta),
+            (sp.Symbol('phi', real=True), phi),
+            (sp.Symbol('phi', real=True, positive=True), phi)
+        ])
+
+        # Multiplicamos por el Jacobiano
+        integrando = f_local * rho**2 * sp.sin(phi)
+        pasos.append(f"Integrando con Jacobiano (ρ² sin(φ)): {integrando}")
+
+        try:
+            # 1️⃣ Integrar respecto a ρ
+            I_rho = sp.integrate(integrando, (rho, rho_lim[0], rho_lim[1]))
+            I_rho = sp.simplify(I_rho)
+            pasos.append(f"1️⃣ ∫ f*ρ²*sin(φ) dρ = {I_rho}")
+
+            # 2️⃣ Integrar respecto a θ
+            I_theta = sp.integrate(I_rho, (theta, theta_lim[0], theta_lim[1]))
+            I_theta = sp.simplify(I_theta)
+            pasos.append(f"2️⃣ ∫ (resultado anterior) dθ = {I_theta}")
+
+            # 3️⃣ Integrar respecto a φ
+            I_phi = sp.integrate(I_theta, (phi, phi_lim[0], phi_lim[1]))
+            I_phi = sp.simplify(I_phi)
+            pasos.append(f"3️⃣ ∫ (resultado anterior) dφ = {I_phi}")
+
+            resultado_simbolico = sp.simplify(I_phi)
+            
+            try:
+                resultado_simbolico_evaluado = sp.N(resultado_simbolico, 15)
+                resultado_manual = float(resultado_simbolico_evaluado)
+            except:
+                resultado_simbolico_evaluado = resultado_simbolico.evalf()
+                try:
+                    resultado_manual = float(resultado_simbolico_evaluado)
+                except:
+                    resultado_manual = None
+
+            return {
+                "resultado_manual": resultado_manual,
+                "resultado_simbolico": resultado_simbolico,
+                "resultado_simbolico_evaluado": resultado_simbolico_evaluado,
+                "pasos": "\n".join(pasos)
+            }
+
+        except Exception as e:
+            return {
+                "resultado_manual": None,
+                "resultado_simbolico": str(e),
+                "resultado_simbolico_evaluado": None,
+                "pasos": f"Error en integración esférica: {str(e)}"
+            }
+
+
+# Función de prueba
+if __name__ == "__main__":
+    print("="*60)
+    print("PRUEBA DE INTEGRAL CILÍNDRICA")
+    print("="*60)
+    
+    # Definir símbolos
+    r, theta, z = sp.symbols('r theta z', real=True, positive=True)
+    
+    # Función: r
+    f = r
+    
+    # Límites
+    r_lim = [0, 1]
+    theta_lim = [0, 2*sp.pi]
+    z_lim = [0, 1]
+    
+    # Calcular
+    calc = IntegralCalculator()
+    resultado = calc.integral_cylindrical(f, r_lim, theta_lim, z_lim)
+    
+    print("\n" + resultado['pasos'])
+    print("\n" + "="*60)
+    print("RESULTADO FINAL:")
+    print(f"Simbólico: {resultado['resultado_simbolico']}")
+    print(f"Numérico: {resultado['resultado_manual']}")
+    print(f"Esperado: 2π/3 ≈ {float((2*sp.pi/3).evalf())}")
+    print("="*60)
