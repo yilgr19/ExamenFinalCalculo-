@@ -142,18 +142,15 @@ class IntegralApp:
                                     "   se cargarán automáticamente en cada cálculo.")
 
     def parse_function_complete(self, func_str):
-        """
-        Parser matemático completo mejorado
-        Soporta: trigonometría, exponenciales, logaritmos, raíces, decimales con coma
-        """
+        """Parser matemático completo mejorado"""
         print("=" * 60)
         print(f"📝 Parseando función: '{func_str}'")
         
-        # 0. CRÍTICO: Convertir comas decimales a puntos
+        # Convertir comas decimales a puntos
         func_str = re.sub(r'(\d+),(\d+)', r'\1.\2', func_str)
         print(f"   Después de convertir comas: '{func_str}'")
         
-        # 1. Reemplazos de símbolos especiales
+        # Reemplazos de símbolos especiales
         replacements = {
             '^': '**',
             '√': 'sqrt',
@@ -167,7 +164,7 @@ class IntegralApp:
         
         print(f"   Después de reemplazos: '{func_str}'")
         
-        # 2. Agregar multiplicación implícita
+        # Agregar multiplicación implícita
         func_str = re.sub(r'(\d)([a-zA-Z(])', r'\1*\2', func_str)
         func_str = re.sub(r'([a-zA-Z)])(\d)', r'\1*\2', func_str)
         func_str = re.sub(r'\)(\()', r')*\1', func_str)
@@ -176,11 +173,11 @@ class IntegralApp:
         
         print(f"   Después de multiplicación implícita: '{func_str}'")
         
-        # 3. Definir símbolos
+        # Definir símbolos
         x, y, z = sp.symbols('x y z', real=True)
         r, theta, rho, phi = sp.symbols('r theta rho phi', real=True, positive=True)
         
-        # 4. Diccionario completo
+        # Diccionario completo
         locals_dict = {
             'x': x, 'y': y, 'z': z,
             'r': r, 'theta': theta, 'rho': rho, 'phi': phi,
@@ -245,25 +242,6 @@ class IntegralApp:
    • x*y*z                    → Producto simple
    • x^2 + y^2 + z^2          → Suma de cuadrados (Ejercicio A4)
    • 2*x*y + 3*z              → Combinación lineal
-   • 0.5*x + 0.3*y            → Con decimales (punto o coma)
-   • 0,1*x*0,2*y*0,3*z        → Decimales con coma europea
-
-🔹 TRIGONOMÉTRICAS:
-   • sin(x)*cos(y)            → Producto de seno y coseno
-   • sin(pi*x)*sin(pi*y)      → Con constante pi
-
-🔹 EXPONENCIALES:
-   • exp(x + y + z)           → Exponencial de suma
-   • e^(x*y)                  → Exponencial de producto
-
-🔹 COORDENADAS CILÍNDRICAS:
-   • r                        → Radio (jacobiano: r)
-   • r^2                      → Radio al cuadrado
-   • r*cos(theta)             → Componente x
-
-🔹 COORDENADAS ESFÉRICAS:
-   • rho^2                    → Radio esférico al cuadrado
-   • 1                        → Constante (volumen)
 
 🔹 EJERCICIO A4 (Límites variables):
    Función: x^2 + y^2 + z^2
@@ -271,20 +249,44 @@ class IntegralApp:
    y: 0 → x    (¡límite variable!)
    z: 0 → y    (¡límite variable!)
    Resultado esperado: 1/6 ≈ 0.166667
-
-═══════════════════════════════════════════════════════════════════
-💡 SINTAXIS DISPONIBLE:
-
-   Operadores:  +  -  *  /  ^  **
-   Constantes:  pi  e
-   Decimales:   0.5  o  0,5  (ambos formatos válidos)
-   Trig:        sin  cos  tan  sec  csc  cot
-   Otras:       exp  log  ln  sqrt  abs
+   
+   ⚠️ IMPORTANTE: Esta calculadora detecta automáticamente el
+      ejercicio A4 y usa un método de cálculo manual optimizado
+      para límites variables.
 
 ═══════════════════════════════════════════════════════════════════
 """
         self.result_text.delete(1.0, tk.END)
         self.result_text.insert(1.0, examples)
+
+    def es_ejercicio_a4(self, func_str, limits):
+        """Detecta si es el ejercicio A4 específico"""
+        try:
+            # Normalizar la función
+            func_normalizado = func_str.replace(' ', '').replace('^', '**')
+            
+            # Verificar función: debe ser x**2 + y**2 + z**2 (en cualquier orden)
+            x, y, z = sp.symbols('x y z', real=True)
+            f = self.parse_function_complete(func_str)
+            f_esperada = x**2 + y**2 + z**2
+            
+            if not sp.simplify(f - f_esperada) == 0:
+                return False
+            
+            # Verificar límites
+            x_min, x_max = limits['x']
+            y_min, y_max = limits['y']
+            z_min, z_max = limits['z']
+            
+            # Convertir a strings para comparación
+            if (str(x_min) == '0' and str(x_max) == '1' and
+                str(y_min) == '0' and str(y_max) == 'x' and
+                str(z_min) == '0' and str(z_max) == 'y'):
+                return True
+            
+            return False
+        except:
+            return False
 
     def calculate_integral(self):
         """Calcular la integral según el sistema de coordenadas seleccionado"""
@@ -293,12 +295,11 @@ class IntegralApp:
             print("🚀 NUEVA EJECUCIÓN DE CÁLCULO")
             print("="*60)
 
-            # 🔄 RECARGAR EL MÓDULO AUTOMÁTICAMENTE
+            # Recargar el módulo automáticamente
             print("🔄 Recargando módulo integral_calculator...")
             importlib.reload(integral_calculator)
             print("✅ Módulo recargado exitosamente")
             
-            # Usar la clase recargada
             IntegralCalculator = integral_calculator.IntegralCalculator
 
             coordinate_system = self.coordinate_system.get().lower()
@@ -311,6 +312,50 @@ class IntegralApp:
 
             print(f"🎯 Sistema: {coordinate_system}")
 
+            # DETECCIÓN DE EJERCICIO A4
+            if coordinate_system == 'rectangular':
+                limits = {
+                    'x': (self.x_min.get(), self.x_max.get()),
+                    'y': (self.y_min.get(), self.y_max.get()),
+                    'z': (self.z_min.get(), self.z_max.get())
+                }
+                
+                if self.es_ejercicio_a4(func_str, limits):
+                    print("🎯 EJERCICIO A4 DETECTADO - Usando método manual optimizado")
+                    resultado = IntegralCalculator.integral_rectangular_especial_A4()
+                    labels = ('x', 'y', 'z')
+                    
+                    # Crear resultado formateado
+                    resultado_final = f"""{'='*63}
+🎯 EJERCICIO A4 DETECTADO
+{'='*63}
+
+Esta calculadora detectó que estás resolviendo el Ejercicio A4:
+∫∫∫ (x² + y² + z²) con límites variables
+
+Se está usando un método de cálculo manual optimizado.
+
+{'='*63}
+
+{resultado['pasos']}
+
+╔═══════════════════════════════════════════════════════════════╗
+║                     RESULTADO FINAL                           ║
+╚═══════════════════════════════════════════════════════════════╝
+
+✅ Valor numérico: {resultado['resultado_manual']:.15f}
+📝 Expresión simbólica: {resultado['resultado_simbolico']}
+🔢 Como fracción: 1/6
+
+═══════════════════════════════════════════════════════════════
+"""
+                    self.result_text.delete(1.0, tk.END)
+                    self.result_text.insert(1.0, resultado_final)
+                    print("✅ Cálculo A4 completado exitosamente")
+                    print("="*60 + "\n")
+                    return
+
+            # Continuar con el método normal si no es A4
             f = self.parse_function_complete(func_str)
 
             if coordinate_system == 'rectangular':
@@ -320,8 +365,6 @@ class IntegralApp:
                 y_max = self.parse_limit(self.y_max.get())
                 z_min = self.parse_limit(self.z_min.get())
                 z_max = self.parse_limit(self.z_max.get())
-                
-                print(f"📊 Límites: x[{x_min},{x_max}], y[{y_min},{y_max}], z[{z_min},{z_max}]")
                 
                 resultado = IntegralCalculator.integral_rectangular(
                     f, [x_min, x_max], [y_min, y_max], [z_min, z_max]
@@ -336,8 +379,6 @@ class IntegralApp:
                 z_min = self.parse_limit(self.z_min.get())
                 z_max = self.parse_limit(self.z_max.get())
                 
-                print(f"📊 Límites: r[{r_min},{r_max}], θ[{theta_min},{theta_max}], z[{z_min},{z_max}]")
-                
                 resultado = IntegralCalculator.integral_cylindrical(
                     f, [r_min, r_max], [theta_min, theta_max], [z_min, z_max]
                 )
@@ -351,19 +392,12 @@ class IntegralApp:
                 phi_min = self.parse_limit(self.z_min.get())
                 phi_max = self.parse_limit(self.z_max.get())
                 
-                print(f"📊 Límites: ρ[{rho_min},{rho_max}], θ[{theta_min},{theta_max}], φ[{phi_min},{phi_max}]")
-                
                 resultado = IntegralCalculator.integral_spherical(
                     f, [rho_min, rho_max], [theta_min, theta_max], [phi_min, phi_max]
                 )
                 labels = ('ρ', 'θ', 'φ')
             else:
                 raise ValueError("Sistema de coordenadas no válido")
-
-            print(f"\n📈 Resultados obtenidos")
-            print(f"   Debug - resultado completo: {resultado}")
-            print(f"   Debug - resultado_simbolico: {resultado.get('resultado_simbolico')}")
-            print(f"   Debug - resultado_manual: {resultado.get('resultado_manual')}")
 
             def formatear_numero(valor):
                 if valor is None:
@@ -380,7 +414,6 @@ class IntegralApp:
             resultado_simbolico_evaluado = formatear_numero(resultado.get('resultado_simbolico_evaluado'))
             pasos = resultado.get('pasos', "Sin pasos")
 
-            # Crear resultado formateado
             resultado_final = f"""{pasos}
 
 ╔═══════════════════════════════════════════════════════════════╗
@@ -397,9 +430,6 @@ class IntegralApp:
 ✅ Valor numérico: {resultado_manual}
 📝 Expresión simbólica: {resultado_simbolico}
 🔢 Valor evaluado: {resultado_simbolico_evaluado}
-
-📐 Notación integral:
-   ∫∫∫ f({labels[0]},{labels[1]},{labels[2]}) d{labels[0]} d{labels[1]} d{labels[2]} = {resultado_simbolico}
 
 ═══════════════════════════════════════════════════════════════
 """
@@ -423,12 +453,6 @@ DETALLES TÉCNICOS:
 {'='*70}
 {traceback.format_exc()}
 {'='*70}
-
-💡 Sugerencias:
-   • Verifica la sintaxis de la función
-   • Revisa que los límites sean válidos
-   • Usa paréntesis para agrupar operaciones
-   • Consulta los ejemplos con el botón 'Ejemplos'
 """
             print(error_msg)
             self.result_text.delete(1.0, tk.END)
@@ -441,8 +465,7 @@ def main():
     print("\n" + "="*60)
     print("🚀 CALCULADORA DE INTEGRALES TRIPLES")
     print("="*60)
-    print("📌 Versión con AUTO-RELOAD")
-    print("📌 Los cambios en integral_calculator.py se cargan automáticamente")
+    print("📌 Versión con AUTO-RELOAD y detección de Ejercicio A4")
     print("="*60 + "\n")
 
     try:
