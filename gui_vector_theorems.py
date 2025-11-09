@@ -28,8 +28,9 @@ class VectorTheoremsApp:
             return
         
         try:
-            self.root.geometry("900x1150")
-        except:
+            self.root.geometry("920x780")
+            self.root.minsize(880, 680)
+        except Exception:
             pass
         
         self.theorem_type = tk.StringVar(value="divergencia")
@@ -77,17 +78,35 @@ class VectorTheoremsApp:
         ttk.Button(frame, text="Cerrar", command=self.root.destroy).pack(pady=20)
     
     def create_widgets(self):
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+        
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        main_frame.grid_columnconfigure(0, weight=1)
         
-        ttk.Label(main_frame, text="Calculadora de Teoremas Vectoriales",
-                  font=("Arial", 16, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
+        header_frame = ttk.Frame(main_frame)
+        header_frame.grid(row=0, column=0, sticky='ew', pady=(0, 8))
+        header_frame.grid_columnconfigure(0, weight=1)
+        
+        ttk.Label(header_frame, text="Calculadora de Teoremas Vectoriales",
+                  font=("Arial", 16, "bold")).grid(row=0, column=0, sticky=tk.W)
+        
+        controls_frame = ttk.Frame(header_frame)
+        controls_frame.grid(row=0, column=1, sticky=tk.E, padx=(10, 0))
+        ttk.Label(controls_frame, text="Seleccionar Teorema:").grid(row=0, column=0, sticky=tk.E, padx=(0, 6))
+        theorem_combo = ttk.Combobox(controls_frame, textvariable=self.theorem_type,
+                                    values=["green", "stokes", "divergencia"],
+                                    state="readonly", width=20)
+        theorem_combo.grid(row=0, column=1, sticky=tk.E)
+        theorem_combo.bind("<<ComboboxSelected>>", self.change_theorem)
+        controls_frame.grid_columnconfigure(1, weight=1)
         
         # Guía de sintaxis
         syntax_frame = ttk.LabelFrame(main_frame, text="📖 Guía Rápida de Sintaxis", padding="5")
-        syntax_frame.grid(row=1, column=0, columnspan=2, pady=5, sticky=(tk.W, tk.E))
+        syntax_frame.grid(row=1, column=0, pady=(0, 8), sticky='ew')
         
-        syntax_text = tk.Text(syntax_frame, height=5, width=100, wrap=tk.WORD,
+        syntax_text = tk.Text(syntax_frame, height=4, width=100, wrap=tk.WORD,
                              font=("Consolas", 8), bg="#f9f9f9", relief=tk.FLAT)
         syntax_text.grid(row=0, column=0, sticky=(tk.W, tk.E))
         
@@ -100,22 +119,22 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         syntax_text.insert(1.0, syntax_content)
         syntax_text.config(state=tk.DISABLED)
         
-        ttk.Label(main_frame, text="Seleccionar Teorema:").grid(row=2, column=0, sticky=tk.W, pady=5)
-        theorem_combo = ttk.Combobox(main_frame, textvariable=self.theorem_type,
-                                    values=["green", "stokes", "divergencia"],
-                                    state="readonly", width=25)
-        theorem_combo.grid(row=2, column=1, sticky=tk.W, pady=5)
-        theorem_combo.bind("<<ComboboxSelected>>", self.change_theorem)
+        paned = ttk.Panedwindow(main_frame, orient=tk.VERTICAL)
+        paned.grid(row=2, column=0, sticky='nsew')
+        main_frame.grid_rowconfigure(2, weight=1)
         
-        self.notebook = ttk.Notebook(main_frame)
-        self.notebook.grid(row=3, column=0, columnspan=2, pady=10, sticky='nsew')
+        notebook_container = ttk.Frame(paned)
+        notebook_container.grid_columnconfigure(0, weight=1)
+        notebook_container.grid_rowconfigure(0, weight=1)
+        self.notebook = ttk.Notebook(notebook_container)
+        self.notebook.grid(row=0, column=0, sticky='nsew')
         
         self.create_green_tab()
         self.create_stokes_tab()
         self.create_divergence_tab()
         
-        button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=4, column=0, columnspan=2, pady=15)
+        button_frame = ttk.Frame(notebook_container)
+        button_frame.grid(row=1, column=0, pady=(8, 0))
         ttk.Button(button_frame, text="🧮 Calcular",
                   command=self.calculate).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="🗑️ Limpiar",
@@ -123,10 +142,17 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         ttk.Button(button_frame, text="📚 Ejemplos",
                   command=self.show_examples).pack(side=tk.LEFT, padx=5)
         
-        result_frame = ttk.LabelFrame(main_frame, text="Resultado Detallado", padding="5")
-        result_frame.grid(row=5, column=0, columnspan=2, pady=10, sticky='nsew')
+        paned.add(notebook_container, weight=3)
         
-        self.result_text = tk.Text(result_frame, height=18, width=100, wrap=tk.WORD,
+        result_container = ttk.Frame(paned)
+        paned.add(result_container, weight=2)
+        
+        result_frame = ttk.LabelFrame(result_container, text="Resultado Detallado", padding="5")
+        result_frame.grid(row=0, column=0, sticky='nsew')
+        result_container.grid_rowconfigure(0, weight=1)
+        result_container.grid_columnconfigure(0, weight=1)
+        
+        self.result_text = tk.Text(result_frame, height=14, width=100, wrap=tk.WORD,
                                     font=("Consolas", 9), bg="#f5f5f5", state=tk.DISABLED)
         scrollbar = ttk.Scrollbar(result_frame, orient="vertical", command=self.result_text.yview)
         self.result_text.configure(yscrollcommand=scrollbar.set)
@@ -135,8 +161,6 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         
         result_frame.grid_rowconfigure(0, weight=1)
         result_frame.grid_columnconfigure(0, weight=1)
-        main_frame.grid_rowconfigure(5, weight=1)
-        main_frame.grid_columnconfigure(1, weight=1)
         
         self.show_welcome_message()
     
