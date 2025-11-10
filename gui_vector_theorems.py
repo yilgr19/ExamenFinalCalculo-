@@ -1,18 +1,34 @@
-"""
-GUI para Teoremas Vectoriales (Green, Stokes, Divergencia)
-VERSIÓN MEJORADA - Maneja campos complejos como 2*x*r**2
-"""
 import tkinter as tk
 from tkinter import ttk, messagebox
 import sympy as sp
 import importlib
 import re
+import os # Añadir para manejar la caché si es necesario
 
 try:
+    # Intenta importar el módulo de lógica matemática
     import vector_theorems
     MODULO_DISPONIBLE = True
 except ImportError:
     MODULO_DISPONIBLE = False
+
+# =========================================================================
+# Función auxiliar para eliminar la caché
+# Esto es para ayudar a solucionar el problema de actualización de código
+# =========================================================================
+def clean_pycache():
+    """Elimina la carpeta __pycache__ en el directorio actual."""
+    cache_dir = os.path.join(os.path.dirname(__file__), '__pycache__')
+    if os.path.exists(cache_dir):
+        try:
+            import shutil
+            shutil.rmtree(cache_dir)
+            print("✅ Caché de Python (__pycache__) eliminada exitosamente.")
+        except Exception as e:
+            print(f"⚠️ Error al intentar eliminar __pycache__: {e}")
+
+# Llama a la limpieza al inicio para asegurar la actualización
+clean_pycache()
 
 
 class VectorTheoremsApp:
@@ -96,8 +112,8 @@ class VectorTheoremsApp:
         controls_frame.grid(row=0, column=1, sticky=tk.E, padx=(10, 0))
         ttk.Label(controls_frame, text="Seleccionar Teorema:").grid(row=0, column=0, sticky=tk.E, padx=(0, 6))
         theorem_combo = ttk.Combobox(controls_frame, textvariable=self.theorem_type,
-                                    values=["green", "stokes", "divergencia"],
-                                    state="readonly", width=20)
+                                     values=["green", "stokes", "divergencia"],
+                                     state="readonly", width=20)
         theorem_combo.grid(row=0, column=1, sticky=tk.E)
         theorem_combo.bind("<<ComboboxSelected>>", self.change_theorem)
         controls_frame.grid_columnconfigure(1, weight=1)
@@ -107,10 +123,10 @@ class VectorTheoremsApp:
         syntax_frame.grid(row=1, column=0, pady=(0, 8), sticky='ew')
         
         syntax_text = tk.Text(syntax_frame, height=4, width=100, wrap=tk.WORD,
-                             font=("Consolas", 8), bg="#f9f9f9", relief=tk.FLAT)
+                              font=("Consolas", 8), bg="#f9f9f9", relief=tk.FLAT)
         syntax_text.grid(row=0, column=0, sticky=(tk.W, tk.E))
         
-        syntax_content = """OPERADORES: + - * / **    POTENCIAS: x**2, r^2    RAÍZ: sqrt(x)    CONSTANTES: pi, e
+        syntax_content = """OPERADORES: + - * / ** POTENCIAS: x**2, r^2    RAÍZ: sqrt(x)    CONSTANTES: pi, e
 TRIGONOMÉTRICAS: sin(x), cos(y), tan(theta), asin(x), acos(x), atan(x)
 HIPERBÓLICAS: sinh(x), cosh(x), tanh(x)    OTRAS: exp(x), log(x), ln(x), abs(x)
 VARIABLES COMUNES: x, y, z, r, theta, rho, phi, u, v
@@ -136,11 +152,11 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         button_frame = ttk.Frame(notebook_container)
         button_frame.grid(row=1, column=0, pady=(8, 0))
         ttk.Button(button_frame, text="🧮 Calcular",
-                  command=self.calculate).pack(side=tk.LEFT, padx=5)
+                   command=self.calculate).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="🗑️ Limpiar",
-                  command=self.clear_results).pack(side=tk.LEFT, padx=5)
+                   command=self.clear_results).pack(side=tk.LEFT, padx=5)
         ttk.Button(button_frame, text="📚 Ejemplos",
-                  command=self.show_examples).pack(side=tk.LEFT, padx=5)
+                   command=self.show_examples).pack(side=tk.LEFT, padx=5)
         
         paned.add(notebook_container, weight=3)
         
@@ -153,7 +169,7 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         result_container.grid_columnconfigure(0, weight=1)
         
         self.result_text = tk.Text(result_frame, height=14, width=100, wrap=tk.WORD,
-                                    font=("Consolas", 9), bg="#f5f5f5", state=tk.DISABLED)
+                                   font=("Consolas", 9), bg="#f5f5f5", state=tk.DISABLED)
         scrollbar = ttk.Scrollbar(result_frame, orient="vertical", command=self.result_text.yview)
         self.result_text.configure(yscrollcommand=scrollbar.set)
         self.result_text.grid(row=0, column=0, sticky='nsew')
@@ -169,7 +185,7 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         self.notebook.add(green_frame, text="Teorema de Green")
         
         ttk.Label(green_frame, text="Campo Vectorial F = (P, Q)",
-                 font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
+                  font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
         
         ttk.Label(green_frame, text="P(x,y) =").grid(row=1, column=0, sticky=tk.E, padx=5)
         ttk.Entry(green_frame, textvariable=self.green_P, width=30).grid(row=1, column=1, pady=5)
@@ -179,7 +195,7 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         
         ttk.Label(green_frame, text="Tipo de región:").grid(row=3, column=0, sticky=tk.E, padx=5, pady=10)
         ttk.Combobox(green_frame, textvariable=self.green_tipo,
-                    values=["rectangular", "polar"], state="readonly", width=27).grid(row=3, column=1)
+                     values=["rectangular", "polar"], state="readonly", width=27).grid(row=3, column=1)
         
         limits_frame = ttk.LabelFrame(green_frame, text="Límites", padding="5")
         limits_frame.grid(row=4, column=0, columnspan=2, pady=10, sticky='ew')
@@ -199,7 +215,7 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         self.notebook.add(stokes_frame, text="Teorema de Stokes")
         
         ttk.Label(stokes_frame, text="Campo Vectorial F = (Fx, Fy, Fz)",
-                 font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
+                  font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
         
         ttk.Label(stokes_frame, text="Fx(x,y,z) =").grid(row=1, column=0, sticky=tk.E, padx=5)
         ttk.Entry(stokes_frame, textvariable=self.stokes_Fx, width=30).grid(row=1, column=1, pady=3)
@@ -240,7 +256,7 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         self.notebook.add(div_frame, text="Teorema Divergencia")
         
         ttk.Label(div_frame, text="Campo Vectorial F = (Fx, Fy, Fz)",
-                 font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
+                  font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=2, pady=10)
         
         ttk.Label(div_frame, text="Fx(x,y,z) =").grid(row=1, column=0, sticky=tk.E, padx=5)
         ttk.Entry(div_frame, textvariable=self.div_Fx, width=30).grid(row=1, column=1, pady=3)
@@ -253,8 +269,8 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         
         ttk.Label(div_frame, text="Sistema:").grid(row=4, column=0, sticky=tk.E, padx=5, pady=10)
         ttk.Combobox(div_frame, textvariable=self.div_tipo,
-                    values=["rectangular", "cylindrical", "spherical"],
-                    state="readonly", width=27).grid(row=4, column=1)
+                     values=["rectangular", "cylindrical", "spherical"],
+                     state="readonly", width=27).grid(row=4, column=1)
         
         limits_frame = ttk.LabelFrame(div_frame, text="Límites", padding="5")
         limits_frame.grid(row=5, column=0, columnspan=2, pady=10, sticky='ew')
@@ -283,27 +299,59 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         else:
             self.notebook.select(2)
     
+    # =========================================================================
+    # 🌟 FUNCIÓN CORREGIDA CRÍTICA (parse_expression) 🌟
+    # Esta función transforma la entrada de texto de la GUI en expresiones SymPy.
+    # =========================================================================
     def parse_expression(self, expr_str):
-        expr_str = str(expr_str).replace('^', '**').replace('π', 'pi')
+        expr_str = str(expr_str).strip()
+        if not expr_str:
+            return sp.Integer(0)
+            
+        # 1. Limpieza y estandarización
+        expr_str = expr_str.replace('^', '**').replace('π', 'pi')
+        
+        # 2. Inserción de multiplicación implícita (ej. 2x -> 2*x)
         expr_str = re.sub(r'(\d)([a-zA-Z(])', r'\1*\2', expr_str)
         
+        # 3. Definición de Símbolos
         x, y, z = sp.symbols('x y z', real=True)
         u, v = sp.symbols('u v', real=True)
         r, theta = sp.symbols('r theta', real=True, positive=True)
         rho, phi = sp.symbols('rho phi', real=True, positive=True)
         
+        # 4. Contexto local de SymPy: CRUCIAL para que SymPy reconozca todo
         locals_dict = {
             'x': x, 'y': y, 'z': z, 'u': u, 'v': v,
             'r': r, 'theta': theta, 'rho': rho, 'phi': phi,
             'pi': sp.pi, 'e': sp.E,
             'sin': sp.sin, 'cos': sp.cos, 'tan': sp.tan,
-            'sqrt': sp.sqrt, 'exp': sp.exp, 'log': sp.log
+            'asin': sp.asin, 'acos': sp.acos, 'atan': sp.atan,
+            'sinh': sp.sinh, 'cosh': sp.cosh, 'tanh': sp.tanh,
+            'sqrt': sp.sqrt, 'exp': sp.exp, 'log': sp.log, 'ln': sp.log, 'abs': sp.Abs
         }
         
-        return sp.sympify(expr_str, locals=locals_dict)
+        try:
+            # 5. Intentar convertir con el contexto completo
+            # evaluate=False mejora el manejo de expresiones complejas
+            parsed_expr = sp.sympify(expr_str, locals=locals_dict, evaluate=False)
+            return sp.simplify(parsed_expr)
+            
+        except (sp.SympifyError, TypeError) as e:
+            # Intenta una conversión numérica simple para límites o constantes puras
+            try:
+                # Intenta convertir a número puro
+                return sp.sympify(float(expr_str))
+            except ValueError:
+                # Lanza error si no es expresión ni número
+                raise ValueError(f"Expresión inválida '{expr_str}'. Revise la sintaxis. Error: {e}")
+    # =========================================================================
+    # 🌟 FIN DE FUNCIÓN CORREGIDA 🌟
+    # =========================================================================
     
     def calculate(self):
         try:
+            # Recargar el módulo para garantizar que se usa la versión más reciente
             importlib.reload(vector_theorems)
             VectorTheorems = vector_theorems.VectorTheorems
             
@@ -327,16 +375,16 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         if tipo == "polar":
             bounds = {
                 'r': [self.parse_expression(self.green_x_min.get()),
-                     self.parse_expression(self.green_x_max.get())],
+                      self.parse_expression(self.green_x_max.get())],
                 'theta': [self.parse_expression(self.green_y_min.get()),
-                         self.parse_expression(self.green_y_max.get())]
+                          self.parse_expression(self.green_y_max.get())]
             }
         else:
             bounds = {
                 'x': [self.parse_expression(self.green_x_min.get()),
-                     self.parse_expression(self.green_x_max.get())],
+                      self.parse_expression(self.green_x_max.get())],
                 'y': [self.parse_expression(self.green_y_min.get()),
-                     self.parse_expression(self.green_y_max.get())]
+                      self.parse_expression(self.green_y_max.get())]
             }
         
         resultado = VectorTheorems.green_theorem(P, Q, bounds, tipo)
@@ -353,9 +401,9 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         
         bounds = {
             'u': [self.parse_expression(self.stokes_u_min.get()),
-                 self.parse_expression(self.stokes_u_max.get())],
+                  self.parse_expression(self.stokes_u_max.get())],
             'v': [self.parse_expression(self.stokes_v_min.get()),
-                 self.parse_expression(self.stokes_v_max.get())]
+                  self.parse_expression(self.stokes_v_max.get())]
         }
         
         resultado = VectorTheorems.stokes_theorem([Fx, Fy, Fz], [x_param, y_param, z_param], bounds)
@@ -370,29 +418,29 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
         if tipo == "spherical":
             bounds = {
                 'rho': [self.parse_expression(self.div_x_min.get()),
-                       self.parse_expression(self.div_x_max.get())],
+                        self.parse_expression(self.div_x_max.get())],
                 'theta': [self.parse_expression(self.div_y_min.get()),
-                         self.parse_expression(self.div_y_max.get())],
+                          self.parse_expression(self.div_y_max.get())],
                 'phi': [self.parse_expression(self.div_z_min.get()),
-                       self.parse_expression(self.div_z_max.get())]
+                        self.parse_expression(self.div_z_max.get())]
             }
         elif tipo == "cylindrical":
             bounds = {
                 'r': [self.parse_expression(self.div_x_min.get()),
-                     self.parse_expression(self.div_x_max.get())],
+                      self.parse_expression(self.div_x_max.get())],
                 'theta': [self.parse_expression(self.div_y_min.get()),
-                         self.parse_expression(self.div_y_max.get())],
+                          self.parse_expression(self.div_y_max.get())],
                 'z': [self.parse_expression(self.div_z_min.get()),
-                     self.parse_expression(self.div_z_max.get())]
+                      self.parse_expression(self.div_z_max.get())]
             }
         else:
             bounds = {
                 'x': [self.parse_expression(self.div_x_min.get()),
-                     self.parse_expression(self.div_x_max.get())],
+                      self.parse_expression(self.div_x_max.get())],
                 'y': [self.parse_expression(self.div_y_min.get()),
-                     self.parse_expression(self.div_y_max.get())],
+                      self.parse_expression(self.div_y_max.get())],
                 'z': [self.parse_expression(self.div_z_min.get()),
-                     self.parse_expression(self.div_z_max.get())]
+                      self.parse_expression(self.div_z_max.get())]
             }
         
         resultado = VectorTheorems.divergence_theorem([Fx, Fy, Fz], tipo, bounds)
@@ -417,16 +465,16 @@ EJEMPLOS: -y, 2*x*r**2, sin(theta)*cos(phi), exp(-x**2-y**2), sqrt(x**2+y**2+z**
 TEOREMAS DISPONIBLES:
 
 🟢 TEOREMA DE GREEN
-   ∮_C (P dx + Q dy) = ∬_R (∂Q/∂x - ∂P/∂y) dA
-   Relaciona una integral de línea cerrada con una integral doble sobre la región
+    ∮_C (P dx + Q dy) = ∬_R (∂Q/∂x - ∂P/∂y) dA
+    Relaciona una integral de línea cerrada con una integral doble sobre la región
 
 🔵 TEOREMA DE STOKES
-   ∮_C F·dr = ∬_S (∇×F)·n dS
-   Relaciona una integral de línea cerrada con una integral de superficie
+    ∮_C F·dr = ∬_S (∇×F)·n dS
+    Relaciona una integral de línea cerrada con una integral de superficie
 
 🔴 TEOREMA DE LA DIVERGENCIA (GAUSS)
-   ∬_S F·n dS = ∭_V (∇·F) dV
-   Relaciona el flujo a través de una superficie cerrada con la divergencia en el volumen
+    ∬_S F·n dS = ∭_V (∇·F) dV
+    Relaciona el flujo a través de una superficie cerrada con la divergencia en el volumen
 
 📚 Presiona 'Ejemplos' para ver casos de uso detallados
 🧮 Selecciona un teorema arriba y presiona 'Calcular'
@@ -456,28 +504,28 @@ TEOREMAS DISPONIBLES:
     
     Superficie: Paraboloide z = 1 - x² - y²
     Parametrización: 
-      x(u,v) = u·cos(v)
-      y(u,v) = u·sin(v)
-      z(u,v) = 1 - u²
+      x(u,v) = u*cos(v)
+      y(u,v) = u*sin(v)
+      z(u,v) = 1 - u**2
     
-    Límites: u ∈ [0, 1], v ∈ [0, 2π]
+    Límites: u ∈ [0, 1], v ∈ [0, 2*pi]
     
     Rotacional: ∇×F = (0, 0, -2)
     El teorema calcula el flujo del rotacional a través de la superficie
 
-🔴 TEOREMA DIVERGENCIA - Ejemplo Campo Radial:
-    Campo: F = (2xr², 2yr², 2zr²)  donde r = √(x²+y²+z²)
+🔴 TEOREMA DIVERGENCIA - Ejemplo Esférico:
+    Campo: F = (rho**2*sin(phi)*cos(theta), rho**2*sin(phi)*sin(theta), rho**2*cos(phi))
     Componentes: 
-      Fx = 2*x*r**2
-      Fy = 2*y*r**2
-      Fz = 2*z*r**2
+      Fx = rho**2*sin(phi)*cos(theta)
+      Fy = rho**2*sin(phi)*sin(theta)
+      Fz = rho**2*cos(phi)
     
     Sistema: spherical (esférico)
-    Región: Esfera unitaria
-    Límites: ρ ∈ [0,1], θ ∈ [0,2π], φ ∈ [0,π]
+    Región: Anillo Esférico (Shell)
+    Límites: ρ ∈ [1,2], θ ∈ [0,2*pi], φ ∈ [0,pi]
     
-    Divergencia: ∇·F = ∂Fx/∂x + ∂Fy/∂y + ∂Fz/∂z
-    Se calcula la integral triple de la divergencia sobre el volumen
+    Divergencia: ∇·F = 4*rho (Calculado internamente)
+    Resultado: 60*pi ≈ 188.5
 
 CONSEJOS:
 • Usa multiplicación explícita: 2*x en lugar de 2x

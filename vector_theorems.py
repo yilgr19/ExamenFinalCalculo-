@@ -1,374 +1,218 @@
 import sympy as sp
-from sympy.vector import CoordSys3D, divergence, curl, gradient
-import numpy as np
+import sys
+
+# Definición de Símbolos SimPy Globales para TODO el proyecto
+# Esto asegura que P en gui.py y P en vector_theorems.py compartan la misma variable 'x', 'y', etc.
+# Esto se hace aquí para evitar re-creación en cada llamada a la clase.
+try:
+    x, y, z = sp.symbols('x y z', real=True)
+    r, theta = sp.symbols('r theta', real=True, positive=True) # r, theta para cilíndricas/polares
+    rho, phi = sp.symbols('rho phi', real=True, positive=True) # rho, phi para esféricas
+    u, v = sp.symbols('u v', real=True)
+except Exception as e:
+    # Si falla la definición, salir con error
+    sys.stderr.write(f"Error fatal al definir símbolos SymPy: {e}\n")
+    sys.exit(1)
+
 
 class VectorTheorems:
     
+    # -------------------------------------------------------------------------
+    # Símbolos referenciados desde la definición global superior
+    # -------------------------------------------------------------------------
+    x, y, z = x, y, z
+    r, theta = r, theta
+    rho, phi = rho, phi
+    u, v = u, v
+    
+    # -------------------------------------------------------------------------
+    # TEOREMA DE GREEN
+    # -------------------------------------------------------------------------
     @staticmethod
-    def _convertir_a_numerico(resultado_simbolico):
-        metodos = [
-            lambda x: float(x),
-            lambda x: float(sp.N(x, 15)),
-            lambda x: float(x.evalf(15)),
-            lambda x: float(sp.simplify(x).evalf(15))
-        ]
+    def green_theorem(P, Q, bounds, coord_system="rectangular"):
+        # 1. Calcular Curl 2D: ∂Q/∂x - ∂P/∂y
+        curl_2d = sp.diff(Q, VectorTheorems.x) - sp.diff(P, VectorTheorems.y)
         
-        for metodo in metodos:
-            try:
-                return metodo(resultado_simbolico)
-            except:
-                continue
-        return None
-
-    @staticmethod
-    def green_theorem(P, Q, region_bounds, tipo_region="rectangular"):
-        x, y = sp.symbols('x y', real=True)
-        r, theta = sp.symbols('r theta', real=True)
-        
-        pasos = [
-            "Teorema de Green",
-            "Formula: Integral de linea = Integral de superficie",
-            "Campo vectorial F = (P, Q):",
-            f"   P(x,y) = {P}",
-            f"   Q(x,y) = {Q}",
-            "Calculo de derivadas parciales"
-        ]
-        
-        dQ_dx = sp.diff(Q, x)
-        dP_dy = sp.diff(P, y)
-        
-        pasos.extend([
-            f"dQ/dx = {dQ_dx}",
-            f"dP/dy = {dP_dy}"
-        ])
-        
-        integrand = sp.simplify(dQ_dx - dP_dy)
-        
-        pasos.extend([
-            "Calculo de (dQ/dx - dP/dy)",
-            f"Integrando: {integrand}"
-        ])
-        
-        if tipo_region == "polar":
-            pasos.append("Conversion a coordenadas polares")
-            
-            integrand_polar = integrand.subs([
-                (x, r*sp.cos(theta)),
-                (y, r*sp.sin(theta))
+        # 2. Configurar la integral
+        if coord_system == "polar":
+            # Coordenadas polares: dA = r dr d(theta)
+            integrand = curl_2d.subs([
+                (VectorTheorems.x, VectorTheorems.r * sp.cos(VectorTheorems.theta)),
+                (VectorTheorems.y, VectorTheorems.r * sp.sin(VectorTheorems.theta))
             ])
-            integrand_polar = sp.simplify(integrand_polar * r)
+            integrand = sp.simplify(integrand * VectorTheorems.r) # Multiplicar por Jacobiano r
             
-            r_lim = region_bounds['r']
-            theta_lim = region_bounds['theta']
+            limits = [
+                (VectorTheorems.theta, bounds['theta'][0], bounds['theta'][1]),
+                (VectorTheorems.r, bounds['r'][0], bounds['r'][1])
+            ]
+        else: # Rectangular
+            integrand = curl_2d
+            limits = [
+                (VectorTheorems.y, bounds['y'][0], bounds['y'][1]),
+                (VectorTheorems.x, bounds['x'][0], bounds['x'][1])
+            ]
+        
+        # 3. Integrar
+        try:
+            integral_result = sp.integrate(integrand, *limits)
+            integral_result_num = float(integral_result.evalf())
+        except Exception as e:
+            integral_result = f"Error de integración: {e}"
+            integral_result_num = "N/A"
             
-            pasos.append(f"Integracion respecto a r [{r_lim[0]}, {r_lim[1]}]:")
-            resultado_r = sp.integrate(integrand_polar, (r, r_lim[0], r_lim[1]))
-            resultado_r = sp.simplify(resultado_r)
-            pasos.append(f"Resultado: {resultado_r}")
-            
-            pasos.append(f"Integracion respecto a theta [{theta_lim[0]}, {theta_lim[1]}]:")
-            resultado_final = sp.integrate(resultado_r, (theta, theta_lim[0], theta_lim[1]))
-            
+        pasos = f"Diferencial: ∂Q/∂x - ∂P/∂y = {curl_2d}\n"
+        pasos += f"Sistema: {coord_system.capitalize()}\n"
+        if coord_system == "polar":
+             pasos += f"Integrando (polar, incluyendo r): {integrand}\n"
         else:
-            x_lim = region_bounds['x']
-            y_lim = region_bounds['y']
-            
-            pasos.append(f"Integracion respecto a y [{y_lim[0]}, {y_lim[1]}]:")
-            resultado_y = sp.integrate(integrand, (y, y_lim[0], y_lim[1]))
-            resultado_y = sp.simplify(resultado_y)
-            pasos.append(f"Resultado: {resultado_y}")
-            
-            pasos.append(f"Integracion respecto a x [{x_lim[0]}, {x_lim[1]}]:")
-            resultado_final = sp.integrate(resultado_y, (x, x_lim[0], x_lim[1]))
+             pasos += f"Integrando: {integrand}\n"
+        pasos += f"Límites de integración: {limits}\n"
+        pasos += f"Resultado Simbólico: {integral_result}\n"
+        pasos += f"Valor Numérico: {integral_result_num}"
         
-        resultado_final = sp.simplify(resultado_final)
-        valor_numerico = VectorTheorems._convertir_a_numerico(resultado_final)
+        return {"resultado": integral_result, "pasos": pasos}
+
+    # -------------------------------------------------------------------------
+    # TEOREMA DE STOKES
+    # -------------------------------------------------------------------------
+    @staticmethod
+    def stokes_theorem(F, r_vec, bounds):
+        Fx, Fy, Fz = F
+        x_param, y_param, z_param = r_vec
         
-        pasos.extend([
-            "Resultado Final",
-            f"Resultado simbolico: {resultado_final}",
-            f"Valor numerico: {valor_numerico}"
+        # 1. Calcular el Rotacional (Curl)
+        F_sympy = [Fx, Fy, Fz]
+        nabla = sp.Matrix([sp.diff(Fz, VectorTheorems.y) - sp.diff(Fy, VectorTheorems.z),
+                           sp.diff(Fx, VectorTheorems.z) - sp.diff(Fz, VectorTheorems.x),
+                           sp.diff(Fy, VectorTheorems.x) - sp.diff(Fx, VectorTheorems.y)])
+        
+        curl = sp.simplify(nabla)
+        
+        # 2. Parametrización y Jacobiano
+        r_uv = sp.Matrix([x_param, y_param, z_param])
+        
+        r_u = sp.diff(r_uv, VectorTheorems.u)
+        r_v = sp.diff(r_uv, VectorTheorems.v)
+        
+        # Vector Normal N = r_u x r_v
+        N = r_u.cross(r_v)
+        
+        # 3. Sustitución y Producto Punto (∇×F) · N
+        curl_subs = curl.subs([
+            (VectorTheorems.x, x_param),
+            (VectorTheorems.y, y_param),
+            (VectorTheorems.z, z_param)
         ])
         
-        return {
-            "resultado_simbolico": resultado_final,
-            "resultado_numerico": valor_numerico,
-            "pasos": "\n".join(pasos)
-        }
-
-    @staticmethod
-    def stokes_theorem(F_components, surface_params, param_bounds):
-        x, y, z = sp.symbols('x y z', real=True)
-        u, v = sp.symbols('u v', real=True)
+        integrand = sp.simplify(curl_subs.dot(N))
         
-        F_x, F_y, F_z = F_components
-        
-        pasos = [
-            "Teorema de Stokes",
-            "Formula: Integral de linea = Integral de superficie",
-            "Campo vectorial F = (Fx, Fy, Fz):",
-            f"   Fx = {F_x}",
-            f"   Fy = {F_y}",
-            f"   Fz = {F_z}",
-            "Calculo del rotacional"
+        # 4. Integración
+        limits = [
+            (VectorTheorems.v, bounds['v'][0], bounds['v'][1]),
+            (VectorTheorems.u, bounds['u'][0], bounds['u'][1])
         ]
         
-        curl_x = sp.diff(F_z, y) - sp.diff(F_y, z)
-        curl_y = sp.diff(F_x, z) - sp.diff(F_z, x)
-        curl_z = sp.diff(F_y, x) - sp.diff(F_x, y)
-        
-        pasos.extend([
-            "Rotacional (curl) de F:",
-            f"(curl F)_x = {curl_x}",
-            f"(curl F)_y = {curl_y}",
-            f"(curl F)_z = {curl_z}"
-        ])
-        
-        pasos.append("Parametrizacion de la superficie")
-        
-        r_u = [sp.diff(param, u) for param in surface_params]
-        r_v = [sp.diff(param, v) for param in surface_params]
-        
-        pasos.extend([
-            f"dr/du = {r_u}",
-            f"dr/dv = {r_v}"
-        ])
-        
-        n_x = r_u[1]*r_v[2] - r_u[2]*r_v[1]
-        n_y = r_u[2]*r_v[0] - r_u[0]*r_v[2]
-        n_z = r_u[0]*r_v[1] - r_u[1]*r_v[0]
-        
-        pasos.append(f"Vector normal n = {sp.simplify(n_x)}, {sp.simplify(n_y)}, {sp.simplify(n_z)}")
-        
-        curl_x_param = curl_x.subs([
-            (x, surface_params[0]),
-            (y, surface_params[1]),
-            (z, surface_params[2])
-        ])
-        curl_y_param = curl_y.subs([
-            (x, surface_params[0]),
-            (y, surface_params[1]),
-            (z, surface_params[2])
-        ])
-        curl_z_param = curl_z.subs([
-            (x, surface_params[0]),
-            (y, surface_params[1]),
-            (z, surface_params[2])
-        ])
-        
-        dot_product = sp.simplify(
-            curl_x_param * n_x + curl_y_param * n_y + curl_z_param * n_z
-        )
-        
-        pasos.append(f"(curl F)·n = {dot_product}")
-        
-        u_lim = param_bounds['u']
-        v_lim = param_bounds['v']
-        
-        pasos.append(f"Integracion respecto a v [{v_lim[0]}, {v_lim[1]}]:")
-        resultado_v = sp.integrate(dot_product, (v, v_lim[0], v_lim[1]))
-        resultado_v = sp.simplify(resultado_v)
-        pasos.append(f"Resultado: {resultado_v}")
-        
-        pasos.append(f"Integracion respecto a u [{u_lim[0]}, {u_lim[1]}]:")
-        resultado_final = sp.integrate(resultado_v, (u, u_lim[0], u_lim[1]))
-        resultado_final = sp.simplify(resultado_final)
-        
-        valor_numerico = VectorTheorems._convertir_a_numerico(resultado_final)
-        
-        pasos.extend([
-            "Resultado Final",
-            f"Resultado simbolico: {resultado_final}",
-            f"Valor numerico: {valor_numerico}"
-        ])
-        
-        return {
-            "resultado_simbolico": resultado_final,
-            "resultado_numerico": valor_numerico,
-            "curl": [curl_x, curl_y, curl_z],
-            "pasos": "\n".join(pasos)
-        }
+        try:
+            integral_result = sp.integrate(integrand, *limits)
+            integral_result_num = float(integral_result.evalf())
+        except Exception as e:
+            integral_result = f"Error de integración: {e}"
+            integral_result_num = "N/A"
 
+        pasos = f"Campo F = ({Fx}, {Fy}, {Fz})\n"
+        pasos += f"Rotacional ∇×F = ({curl[0]}, {curl[1]}, {curl[2]})\n"
+        pasos += f"Vector Normal N = ({N[0]}, {N[1]}, {N[2]})\n"
+        pasos += f"Integrando (∇×F) · N: {integrand}\n"
+        pasos += f"Límites de integración: {limits}\n"
+        pasos += f"Resultado Simbólico: {integral_result}\n"
+        pasos += f"Valor Numérico: {integral_result_num}"
+        
+        return {"resultado": integral_result, "pasos": pasos}
+
+    # -------------------------------------------------------------------------
+    # TEOREMA DE LA DIVERGENCIA
+    # -------------------------------------------------------------------------
     @staticmethod
-    def divergence_theorem(F_components, region_type, bounds):
-        x, y, z = sp.symbols('x y z', real=True)
-        r, theta = sp.symbols('r theta', real=True, positive=True)
-        rho, phi = sp.symbols('rho phi', real=True, positive=True)
+    def divergence_theorem(F, coord_system, bounds):
+        Fx, Fy, Fz = F
         
-        F_x, F_y, F_z = F_components
-        
-        pasos = [
-            "Teorema de la Divergencia (Gauss)",
-            "Formula: Integral de superficie = Integral de volumen",
-            "Campo vectorial F = (Fx, Fy, Fz):",
-            f"   Fx = {F_x}",
-            f"   Fy = {F_y}",
-            f"   Fz = {F_z}",
-            "Calculo de la divergencia"
-        ]
-        
-        div_F = sp.diff(F_x, x) + sp.diff(F_y, y) + sp.diff(F_z, z)
-        div_F = sp.simplify(div_F)
-        
-        pasos.extend([
-            "Divergencia de F:",
-            f"div F = {div_F}"
-        ])
-        
-        if region_type == "spherical":
-            pasos.append("Conversion a coordenadas esfericas")
+        # 1. Calcular la Divergencia (∇·F)
+        if coord_system == "rectangular":
+            div_F = sp.diff(Fx, VectorTheorems.x) + sp.diff(Fy, VectorTheorems.y) + sp.diff(Fz, VectorTheorems.z)
+            variables = [VectorTheorems.z, VectorTheorems.y, VectorTheorems.x]
+            pasos_div = f"Divergencia de F (Cartesiana):\n div F = {div_F}\n"
+            integrand = div_F
             
-            div_F_sph = div_F.subs([
-                (x, rho*sp.sin(phi)*sp.cos(theta)),
-                (y, rho*sp.sin(phi)*sp.sin(theta)),
-                (z, rho*sp.cos(phi))
-            ])
-            integrand = sp.simplify(div_F_sph * rho**2 * sp.sin(phi))
+        elif coord_system == "cylindrical":
+            # Asume Fx, Fy, Fz son funciones de r, theta, z
+            F_r, F_theta, F_z = Fx, Fy, Fz 
             
-            pasos.append(f"Integrando: {integrand}")
+            # Fórmula de la Divergencia en Coordenadas Cilíndricas
+            div_F = sp.diff(F_r*VectorTheorems.r, VectorTheorems.r) / VectorTheorems.r + \
+                    sp.diff(F_theta, VectorTheorems.theta) / VectorTheorems.r + \
+                    sp.diff(F_z, VectorTheorems.z)
+                    
+            div_F = sp.simplify(div_F)
+            variables = [VectorTheorems.z, VectorTheorems.theta, VectorTheorems.r]
+            pasos_div = f"Divergencia de F (Cilíndricas):\n div F = {div_F}\n"
+            integrand = sp.simplify(div_F * VectorTheorems.r) # Multiplicar por Jacobiano r
+
+        elif coord_system == "spherical":
+            # Asume Fx, Fy, Fz son las componentes F_rho, F_phi, F_theta
+            F_rho, F_phi, F_theta = Fx, Fy, Fz 
             
-            rho_lim = bounds['rho']
-            theta_lim = bounds['theta']
-            phi_lim = bounds['phi']
+            # Fórmula de la Divergencia en Coordenadas Esféricas
+            div_F = 1 / (VectorTheorems.rho**2 * sp.sin(VectorTheorems.phi)) * (
+                sp.diff(VectorTheorems.rho**2 * F_rho * sp.sin(VectorTheorems.phi), VectorTheorems.rho) +
+                sp.diff(VectorTheorems.rho * F_phi * sp.sin(VectorTheorems.phi), VectorTheorems.phi) +
+                sp.diff(VectorTheorems.rho * F_theta, VectorTheorems.theta) # Corregida la derivada de F_theta
+            )
+
+            # Simplificar para obtener el 5*rho^2 esperado del ejemplo
+            div_F = sp.simplify(div_F)
+            variables = [VectorTheorems.rho, VectorTheorems.phi, VectorTheorems.theta]
+
+            pasos_div = f"Divergencia de F (Esféricas, componentes Fρ, Fφ, Fθ):\n div F = {div_F}\n"
             
-            pasos.append(f"Integracion respecto a phi [{phi_lim[0]}, {phi_lim[1]}]:")
-            try:
-                integrand_expandido = sp.expand(integrand)
-                resultado = sp.integrate(integrand_expandido, (phi, phi_lim[0], phi_lim[1]))
-                resultado = sp.simplify(resultado)
-                pasos.append(f"Resultado: {resultado}")
-            except Exception as e:
-                pasos.append(f"Error en integracion de phi: {e}")
-                try:
-                    resultado = sp.integrate(integrand, (phi, phi_lim[0], phi_lim[1]))
-                    resultado = resultado.evalf()
-                    pasos.append(f"Resultado (numerico): {resultado}")
-                except:
-                    resultado = integrand
-            
-            pasos.append(f"Integracion respecto a theta [{theta_lim[0]}, {theta_lim[1]}]:")
-            try:
-                resultado_expandido = sp.expand(resultado)
-                resultado = sp.integrate(resultado_expandido, (theta, theta_lim[0], theta_lim[1]))
-                resultado = sp.simplify(resultado)
-                pasos.append(f"Resultado: {resultado}")
-            except Exception as e:
-                pasos.append(f"Error en integracion de theta: {e}")
-                try:
-                    resultado = sp.integrate(resultado, (theta, theta_lim[0], theta_lim[1]))
-                    resultado = resultado.evalf()
-                    pasos.append(f"Resultado (numerico): {resultado}")
-                except:
-                    pass
-            
-            pasos.append(f"Integracion respecto a rho [{rho_lim[0]}, {rho_lim[1]}]:")
-            try:
-                resultado_expandido = sp.expand(resultado)
-                resultado_final = sp.integrate(resultado_expandido, (rho, rho_lim[0], rho_lim[1]))
-                resultado_final = sp.simplify(resultado_final)
-                pasos.append(f"Resultado: {resultado_final}")
-            except Exception as e:
-                pasos.append(f"Error en integracion de rho: {e}")
-                try:
-                    resultado_final = sp.integrate(resultado, (rho, rho_lim[0], rho_lim[1]))
-                    resultado_final = resultado_final.evalf()
-                    pasos.append(f"Resultado (numerico): {resultado_final}")
-                except:
-                    resultado_final = resultado
-            
-        elif region_type == "cylindrical":
-            pasos.append("Conversion a coordenadas cilindricas")
-            
-            div_F_cyl = div_F.subs([
-                (x, r*sp.cos(theta)),
-                (y, r*sp.sin(theta))
-            ])
-            integrand = sp.simplify(div_F_cyl * r)
-            
-            pasos.append(f"Integrando: {integrand}")
-            
-            r_lim = bounds['r']
-            theta_lim = bounds['theta']
-            z_lim = bounds['z']
-            
-            pasos.append(f"Integracion respecto a z [{z_lim[0]}, {z_lim[1]}]:")
-            resultado = sp.integrate(integrand, (z, z_lim[0], z_lim[1]))
-            resultado = sp.simplify(resultado)
-            pasos.append(f"Resultado: {resultado}")
-            
-            pasos.append(f"Integracion respecto a theta [{theta_lim[0]}, {theta_lim[1]}]:")
-            resultado = sp.integrate(resultado, (theta, theta_lim[0], theta_lim[1]))
-            resultado = sp.simplify(resultado)
-            pasos.append(f"Resultado: {resultado}")
-            
-            pasos.append(f"Integracion respecto a r [{r_lim[0]}, {r_lim[1]}]:")
-            resultado_final = sp.integrate(resultado, (r, r_lim[0], r_lim[1]))
-            
+            # Jacobiano Esférico: rho^2 * sin(phi)
+            integrand = sp.simplify(div_F * VectorTheorems.rho**2 * sp.sin(VectorTheorems.phi))
+
         else:
-            x_lim = bounds['x']
-            y_lim = bounds['y']
-            z_lim = bounds['z']
+            raise ValueError("Sistema de coordenadas no soportado.")
             
-            pasos.append(f"Integracion respecto a z [{z_lim[0]}, {z_lim[1]}]:")
-            resultado = sp.integrate(div_F, (z, z_lim[0], z_lim[1]))
-            resultado = sp.simplify(resultado)
-            pasos.append(f"Resultado: {resultado}")
-            
-            pasos.append(f"Integracion respecto a y [{y_lim[0]}, {y_lim[1]}]:")
-            resultado = sp.integrate(resultado, (y, y_lim[0], y_lim[1]))
-            resultado = sp.simplify(resultado)
-            pasos.append(f"Resultado: {resultado}")
-            
-            pasos.append(f"Integracion respecto a x [{x_lim[0]}, {x_lim[1]}]:")
-            resultado_final = sp.integrate(resultado, (x, x_lim[0], x_lim[1]))
-        
-        resultado_final = sp.simplify(resultado_final)
-        valor_numerico = VectorTheorems._convertir_a_numerico(resultado_final)
-        
-        pasos.extend([
-            "Resultado Final",
-            f"Resultado simbolico: {resultado_final}",
-            f"Valor numerico: {valor_numerico}"
-        ])
-        
-        return {
-            "resultado_simbolico": resultado_final,
-            "resultado_numerico": valor_numerico,
-            "divergencia": div_F,
-            "pasos": "\n".join(pasos)
-        }
+        # 2. Configurar límites
+        if coord_system == "spherical":
+            limits = [
+                (VectorTheorems.theta, bounds['theta'][0], bounds['theta'][1]),
+                (VectorTheorems.phi, bounds['phi'][0], bounds['phi'][1]),
+                (VectorTheorems.rho, bounds['rho'][0], bounds['rho'][1])
+            ]
+        elif coord_system == "cylindrical":
+             limits = [
+                (VectorTheorems.z, bounds['z'][0], bounds['z'][1]),
+                (VectorTheorems.theta, bounds['theta'][0], bounds['theta'][1]),
+                (VectorTheorems.r, bounds['r'][0], bounds['r'][1])
+            ]
+        else: # Rectangular
+            limits = [
+                (VectorTheorems.z, bounds['z'][0], bounds['z'][1]),
+                (VectorTheorems.y, bounds['y'][0], bounds['y'][1]),
+                (VectorTheorems.x, bounds['x'][0], bounds['x'][1])
+            ]
 
-
-if __name__ == "__main__":
-    print("="*70)
-    print("PRUEBAS DE TEOREMAS VECTORIALES")
-    print("="*70)
-    
-    x, y, z = sp.symbols('x y z', real=True)
-    
-    print("\nEJEMPLO: TEOREMA DE GREEN")
-    
-    P = -y
-    Q = x
-    region = {'x': [0, 1], 'y': [0, 1]}
-    
-    resultado_green = VectorTheorems.green_theorem(P, Q, region, "rectangular")
-    print(resultado_green["pasos"])
-    
-    print("\nEJEMPLO: TEOREMA DE STOKES")
-    
-    F = [y, -x, z]
-    u, v = sp.symbols('u v', real=True)
-    superficie = [u*sp.cos(v), u*sp.sin(v), 1 - u**2]
-    limites = {'u': [0, 1], 'v': [0, 2*sp.pi]}
-    
-    resultado_stokes = VectorTheorems.stokes_theorem(F, superficie, limites)
-    print(resultado_stokes["pasos"])
-    
-    print("\nEJEMPLO: TEOREMA DE LA DIVERGENCIA")
-    
-    F = [x, y, z]
-    bounds = {'x': [0, 1], 'y': [0, 1], 'z': [0, 1]}
-    
-    resultado_div = VectorTheorems.divergence_theorem(F, "rectangular", bounds)
-    print(resultado_div["pasos"])
+        # 3. Integrar
+        try:
+            integral_result = sp.integrate(integrand, *limits)
+            integral_result_num = float(integral_result.evalf())
+        except Exception as e:
+            integral_result = f"Error de integración: {e}"
+            integral_result_num = "N/A"
+            
+        pasos = pasos_div
+        pasos += f"Integrando (incluyendo Jacobiano): {integrand}\n"
+        pasos += f"Límites de integración: {limits}\n"
+        pasos += f"Resultado Simbólico: {integral_result}\n"
+        pasos += f"Valor Numérico: {integral_result_num}"
+        
+        return {"resultado": integral_result, "pasos": pasos}
