@@ -18,12 +18,12 @@ class IntegralApp:
         self.coordinate_system = tk.StringVar(value="rectangular")
         self.function_var = tk.StringVar(value="x+y")
         
-        self.x_min = tk.StringVar(value="0")
-        self.x_max = tk.StringVar(value="2")
-        self.y_min = tk.StringVar(value="0")
-        self.y_max = tk.StringVar(value="2-x")
-        self.z_min = tk.StringVar(value="0")
-        self.z_max = tk.StringVar(value="1")
+        self.x_min = tk.StringVar(value="")
+        self.x_max = tk.StringVar(value="")
+        self.y_min = tk.StringVar(value="")
+        self.y_max = tk.StringVar(value="")
+        self.z_min = tk.StringVar(value="")
+        self.z_max = tk.StringVar(value="")
 
         self.create_widgets()
 
